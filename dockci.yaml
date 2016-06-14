@@ -1,5 +1,4 @@
 dockerfile: dockci.Dockerfile
-repo_name: thatpanda/dockci
 utilities:
   - name: python3-4-wheels-debian
     input:
@@ -16,16 +15,3 @@ utilities:
     output:
       - from: /work/wheelhouse
         to: util
-  - name: bower
-    input:
-      - bower.json /work/bower.json
-    command: bower install
-    output:
-      - from: /work/bower_components
-        to: util
-services:
-  'postgres:9.4':
-    alias: postgres
-    environment:
-      POSTGRES_USER: dockcitest
-      POSTGRES_PASSWORD: dockcitest

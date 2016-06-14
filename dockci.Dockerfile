@@ -11,10 +11,6 @@ ENV LANG en_AU.UTF-8
 RUN mkdir -p /code/data
 WORKDIR /code
 
-ADD _deps_collectstatic.sh /code/_deps_collectstatic.sh
-ADD util/bower_components /code/bower_components
-RUN ./_deps_collectstatic.sh
-
 ADD requirements.txt /code/requirements.txt
 ADD test-requirements.txt /code/test-requirements.txt
 ADD util/wheelhouse /code/wheelhouse
@@ -26,8 +22,6 @@ ADD manage.py /code/manage.py
 ADD dockci /code/dockci
 ADD tests /code/tests
 ADD pylint.conf /code/pylint.conf
-ADD alembic /code/alembic
 
-EXPOSE 5000
 ENTRYPOINT ["/code/entrypoint.sh"]
 CMD ["run"]
