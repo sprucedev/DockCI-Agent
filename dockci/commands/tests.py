@@ -1,9 +1,9 @@
-""" Flask-Script commands for running unit/style/static tests """
+""" Click commands for running unit/style/static tests """
 import os
 
 import docker
 
-from dockci.server import MANAGER
+from dockci.server import cli
 from dockci.util import bin_root, project_root
 
 
@@ -17,7 +17,7 @@ def call_seq(*commands):
     return 0
 
 
-@MANAGER.command
+@cli.command()
 def unittest():
     """ Run unit tests """
     import pytest
@@ -26,7 +26,7 @@ def unittest():
     return pytest.main(['--doctest-modules', '-vvrxs', tests_dir.strpath])
 
 
-@MANAGER.command
+@cli.command()
 def dbtest():
     """ Only run unit tests that require the database """
     import pytest
@@ -57,7 +57,7 @@ def dbtest():
     return pytest.main(['--doctest-modules', '-vvrxs', tests_dir.strpath])
 
 
-@MANAGER.command
+@cli.command()
 def doctest():
     """ Run doc tests """
     import pytest
@@ -66,7 +66,7 @@ def doctest():
     return pytest.main(['--doctest-modules', '-vvrxs', tests_dir.strpath])
 
 
-@MANAGER.command
+@cli.command()
 def pep8():
     """ Style tests with PEP8 """
     from pep8 import StyleGuide
@@ -80,7 +80,7 @@ def pep8():
         return 1
 
 
-@MANAGER.command
+@cli.command()
 def pylint():
     """ Style tests with pylint """
     root_path = project_root()
@@ -107,13 +107,13 @@ def pylint_forked():
         return 0 if returncode == 0 else 1
 
 
-@MANAGER.command
+@cli.command()
 def styletest():
     """ Run style tests """
     return call_seq(pep8, pylint_forked)
 
 
-@MANAGER.command
+@cli.command()
 def ci():  # pylint:disable=invalid-name
     """ Run all tests """
     return call_seq(styletest, unittest, doctest)

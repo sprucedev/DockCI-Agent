@@ -2,6 +2,7 @@
 Functions for setting up and starting the DockCI application server
 """
 
+import click
 import logging
 import mimetypes
 import multiprocessing
@@ -12,47 +13,54 @@ from contextlib import contextmanager
 import pika
 import redis
 import rollbar
-import rollbar.contrib.flask
+#import rollbar.contrib.flask
 
-from dockci.models.config import Config
-from dockci.util import project_root, setup_templates, tokengetter_for
+#from dockci.models.config import Config
+#from dockci.util import project_root, setup_templates, tokengetter_for
+
+
+@click.group()
+@click.pass_context
+def cli(ctx):
+    """ Placeholder for global CLI group """
+    app_init()
 
 
 def app_init():
     """
     Pre-run app setup
     """
-    app_init_rollbar()
+    #app_init_rollbar()
 
     logger = logging.getLogger('dockci.init')
 
     logger.info("Loading app config")
 
-    APP.config['MAIL_SERVER'] = CONFIG.mail_server
-    APP.config['MAIL_PORT'] = CONFIG.mail_port
-    APP.config['MAIL_USE_TLS'] = CONFIG.mail_use_tls
-    APP.config['MAIL_USE_SSL'] = CONFIG.mail_use_ssl
-    APP.config['MAIL_USERNAME'] = CONFIG.mail_username
-    APP.config['MAIL_PASSWORD'] = CONFIG.mail_password
-    APP.config['MAIL_DEFAULT_SENDER'] = CONFIG.mail_default_sender
-
-    APP.config['RABBITMQ_USER'] = os.environ.get(
-        'RABBITMQ_ENV_BACKEND_USER', 'guest')
-    APP.config['RABBITMQ_PASSWORD'] = os.environ.get(
-        'RABBITMQ_ENV_BACKEND_PASSWORD', 'guest')
-    APP.config['RABBITMQ_HOST'] = os.environ.get(
-        'RABBITMQ_PORT_5672_TCP_ADDR', 'localhost')
-    APP.config['RABBITMQ_PORT'] = int(os.environ.get(
-        'RABBITMQ_PORT_5672_TCP_PORT', 5672))
-
-    APP.config['REDIS_HOST'] = os.environ.get(
-        'REDIS_PORT_6379_ADDR', 'redis')
-    APP.config['REDIS_PORT'] = int(os.environ.get(
-        'REDIS_PORT_6379_PORT', 6379))
+    # APP.config['MAIL_SERVER'] = CONFIG.mail_server
+    # APP.config['MAIL_PORT'] = CONFIG.mail_port
+    # APP.config['MAIL_USE_TLS'] = CONFIG.mail_use_tls
+    # APP.config['MAIL_USE_SSL'] = CONFIG.mail_use_ssl
+    # APP.config['MAIL_USERNAME'] = CONFIG.mail_username
+    # APP.config['MAIL_PASSWORD'] = CONFIG.mail_password
+    # APP.config['MAIL_DEFAULT_SENDER'] = CONFIG.mail_default_sender
+    #
+    # APP.config['RABBITMQ_USER'] = os.environ.get(
+    #     'RABBITMQ_ENV_BACKEND_USER', 'guest')
+    # APP.config['RABBITMQ_PASSWORD'] = os.environ.get(
+    #     'RABBITMQ_ENV_BACKEND_PASSWORD', 'guest')
+    # APP.config['RABBITMQ_HOST'] = os.environ.get(
+    #     'RABBITMQ_PORT_5672_TCP_ADDR', 'localhost')
+    # APP.config['RABBITMQ_PORT'] = int(os.environ.get(
+    #     'RABBITMQ_PORT_5672_TCP_PORT', 5672))
+    #
+    # APP.config['REDIS_HOST'] = os.environ.get(
+    #     'REDIS_PORT_6379_ADDR', 'redis')
+    # APP.config['REDIS_PORT'] = int(os.environ.get(
+    #     'REDIS_PORT_6379_PORT', 6379))
 
     mimetypes.add_type('application/x-yaml', 'yaml')
 
-    app_init_workers()
+    # app_init_workers()
 
 
 def get_redis_pool():

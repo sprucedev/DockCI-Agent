@@ -1,2 +1,2 @@
-""" Commands for DockCI Flask-Script """
+""" Commands for DockCI click """
 from . import tests

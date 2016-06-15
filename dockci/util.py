@@ -22,15 +22,15 @@ from ipaddress import ip_address
 from urllib.parse import urlencode, urlparse, urlunparse
 
 import docker.errors
-import jwt
+#import jwt
 import py.error  # pylint:disable=import-error
 import redis
 import yaml_model
 
-from flask import current_app, flash, request
-from flask_principal import Permission, RoleNeed
-from flask_restful import abort as rest_abort
-from flask_security import current_user, login_required
+# from flask import current_app, flash, request
+# from flask_principal import Permission, RoleNeed
+# from flask_restful import abort as rest_abort
+# from flask_security import current_user, login_required
 from py.path import local  # pylint:disable=import-error
 from yaml_model import ValidationError
 
@@ -885,83 +885,3 @@ class RedisWindow(object):
             pipe.zcard(self.key)
 
             return pipe.execute()[1]
-
-
-ADMIN_PERMISSION = Permission(RoleNeed('admin'))
-AGENT_PERMISSION = Permission(RoleNeed('agent'))
-
-
-def show_error(status, message):
-    """
-    If API request, do a REST abort with JSON message. Otherwise, flash the
-    error
-    """
-    if is_api_request():
-        rest_abort(status, message=message)
-
-    flash(message)
-
-
-def require_admin(func):
-    """ Decorator to require ``ADMIN_PERMISSION`` """
-    @wraps(func)
-    def inner(*args, **kwargs):
-        """ Check for admin """
-        if not ADMIN_PERMISSION.can():
-            show_error(401, 'Only an administrator can do this')
-        return func(*args, **kwargs)
-    return inner
-
-
-def require_agent(func):
-    """ Decorator to require ``AGENT_PERMISSION`` """
-    @wraps(func)
-    def inner(*args, **kwargs):
-        """ Check for agent """
-        if not AGENT_PERMISSION.can():
-            show_error(401, 'Only an agent can do this')
-        return func(*args, **kwargs)
-    return inner
-
-
-def require_me_or_admin(func):
-    """
-    Decorator to require ``ADMIN_PERMISSION``, or the current user to be the
-    same as either the ``user_id`` or ``user`` kwargs. If API request, aborts
-    with errors. Otherwise, flashes an error and unsets the user kwargs.
-    """
-    @wraps(func)
-    def inner(*args, **kwargs):
-        """ Check for admin, or user matches """
-        if ADMIN_PERMISSION.can():
-            return func(*args, **kwargs)
-
-        user_id = kwargs.get('user_id', None)
-        user = kwargs.get('user', None)
-
-        okay = True
-
-        if user is not None and user_id is not None:
-            if user.id != user_id:
-                show_error(500, "Somehow user, and user ID don't match")
-
-            okay = False
-
-        if user is None and user_id is None:
-            show_error(400, "No user requested")
-            okay = False
-
-        if user is not None:
-            user_id = user.id
-
-        if current_user.id != user_id:
-            show_error(401, "Only the requested user, or an admin can do this")
-            okay = False
-
-        if not okay:
-            kwargs['user'] = None
-            kwargs['user_id'] = None
-
-        return func(*args, **kwargs)
-
-    return inner
