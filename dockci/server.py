@@ -20,20 +20,24 @@ import rollbar
 
 
 @click.group()
+@click.option('--debug/--no-debug', default=False)
 @click.pass_context
-def cli(ctx):
+def cli(ctx, debug):
     """ Placeholder for global CLI group """
-    app_init()
+    ctx.obj = ctx.obj or {}
+    ctx.obj['LOGGER'] = logging.getLogger('dockci')
+    ctx.obj['DEBUG'] = debug
+
+    init_config(ctx.obj)
+
+    mimetypes.add_type('application/x-yaml', 'yaml')
 
 
-def app_init():
-    """
-    Pre-run app setup
-    """
+def init_config(config):
+    """ Pre-run app setup """
     #app_init_rollbar()
 
-    logger = logging.getLogger('dockci.init')
-
+    logger = config['LOGGER'].getChild('init')
     logger.info("Loading app config")
 
     # APP.config['MAIL_SERVER'] = CONFIG.mail_server
@@ -44,21 +48,19 @@ def app_init():
     # APP.config['MAIL_PASSWORD'] = CONFIG.mail_password
     # APP.config['MAIL_DEFAULT_SENDER'] = CONFIG.mail_default_sender
     #
-    # APP.config['RABBITMQ_USER'] = os.environ.get(
-    #     'RABBITMQ_ENV_BACKEND_USER', 'guest')
-    # APP.config['RABBITMQ_PASSWORD'] = os.environ.get(
-    #     'RABBITMQ_ENV_BACKEND_PASSWORD', 'guest')
-    # APP.config['RABBITMQ_HOST'] = os.environ.get(
-    #     'RABBITMQ_PORT_5672_TCP_ADDR', 'localhost')
-    # APP.config['RABBITMQ_PORT'] = int(os.environ.get(
-    #     'RABBITMQ_PORT_5672_TCP_PORT', 5672))
-    #
-    # APP.config['REDIS_HOST'] = os.environ.get(
-    #     'REDIS_PORT_6379_ADDR', 'redis')
-    # APP.config['REDIS_PORT'] = int(os.environ.get(
-    #     'REDIS_PORT_6379_PORT', 6379))
+    config['RABBITMQ_USER'] = os.environ.get(
+        'RABBITMQ_ENV_BACKEND_USER', 'guest')
+    config['RABBITMQ_PASSWORD'] = os.environ.get(
+        'RABBITMQ_ENV_BACKEND_PASSWORD', 'guest')
+    config['RABBITMQ_HOST'] = os.environ.get(
+        'RABBITMQ_PORT_5672_TCP_ADDR', 'localhost')
+    config['RABBITMQ_PORT'] = int(os.environ.get(
+        'RABBITMQ_PORT_5672_TCP_PORT', 5672))
 
-    mimetypes.add_type('application/x-yaml', 'yaml')
+    config['REDIS_HOST'] = os.environ.get(
+        'REDIS_PORT_6379_ADDR', 'redis')
+    config['REDIS_PORT'] = int(os.environ.get(
+        'REDIS_PORT_6379_PORT', 6379))
 
     # app_init_workers()
 
