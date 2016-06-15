@@ -20,6 +20,10 @@ def call_seq(*commands):
 @cli.command()
 def unittest():
     """ Run unit tests """
+    return unittest_()
+
+def unittest_():
+    """ Run unit tests """
     import pytest
 
     tests_dir = project_root().join('tests')
@@ -29,6 +33,10 @@ def unittest():
 @cli.command()
 def doctest():
     """ Run doc tests """
+    return doctest_()
+
+def doctest_():
+    """ Run doc tests """
     import pytest
 
     tests_dir = project_root().join('dockci')
@@ -37,6 +45,10 @@ def doctest():
 
 @cli.command()
 def pep8():
+    """ Style tests with PEP8 """
+    return pep8_()
+
+def pep8_():
     """ Style tests with PEP8 """
     from pep8 import StyleGuide
 
@@ -51,6 +63,10 @@ def pep8():
 
 @cli.command()
 def pylint():
+    """ Style tests with pylint """
+    return pylint_()
+
+def pylint_():
     """ Style tests with pylint """
     root_path = project_root()
     code_dir = root_path.join('dockci')
@@ -68,7 +84,7 @@ def pylint_forked():
     """ Fork, and execute the pylint command """
     pid = os.fork()
     if not pid:
-        pylint()
+        pylint_()
     else:
         _, returncode = os.waitpid(pid, 0)
 
@@ -79,10 +95,14 @@ def pylint_forked():
 @cli.command()
 def styletest():
     """ Run style tests """
-    return call_seq(pep8, pylint_forked)
+    return styletest_()
+
+def styletest_():
+    """ Run style tests """
+    return call_seq(pep8_, pylint_forked)
 
 
 @cli.command()
 def ci():  # pylint:disable=invalid-name
     """ Run all tests """
-    return call_seq(styletest, unittest, doctest)
+    return call_seq(styletest_, unittest_, doctest_)
