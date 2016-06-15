@@ -1,8 +1,6 @@
 """
 Functions for setting up and starting the DockCI application server
 """
-
-import click
 import logging
 import mimetypes
 import multiprocessing
@@ -10,6 +8,7 @@ import os
 
 from contextlib import contextmanager
 
+import click
 import pika
 import redis
 import rollbar
@@ -19,25 +18,42 @@ import rollbar
 #from dockci.util import project_root, setup_templates, tokengetter_for
 
 
+class Config(object):
+    @property
+    def config_dict(_):
+        context = click.get_current_context()
+        if context.obj is None:
+            context.obj = {}
+
+        return context.obj
+
+    def __getattr__(self, name):
+        return self.config_dict[name]
+    def __setattr__(self, name, value):
+        self.config_dict[name] = value
+
+
+CONFIG = Config()
+
+
 @click.group()
 @click.option('--debug/--no-debug', default=False)
 @click.pass_context
 def cli(ctx, debug):
     """ Placeholder for global CLI group """
-    ctx.obj = ctx.obj or {}
-    ctx.obj['LOGGER'] = logging.getLogger('dockci')
-    ctx.obj['DEBUG'] = debug
+    CONFIG.logger = logging.getLogger('dockci')
+    CONFIG.debug = debug
 
-    init_config(ctx.obj)
+    init_config()
 
     mimetypes.add_type('application/x-yaml', 'yaml')
 
 
-def init_config(config):
+def init_config():
     """ Pre-run app setup """
     #app_init_rollbar()
 
-    logger = config['LOGGER'].getChild('init')
+    logger = CONFIG.logger.getChild('init')
     logger.info("Loading app config")
 
     # APP.config['MAIL_SERVER'] = CONFIG.mail_server
@@ -48,18 +64,18 @@ def init_config(config):
     # APP.config['MAIL_PASSWORD'] = CONFIG.mail_password
     # APP.config['MAIL_DEFAULT_SENDER'] = CONFIG.mail_default_sender
     #
-    config['RABBITMQ_USER'] = os.environ.get(
+    CONFIG.RABBITMQ_USER = os.environ.get(
         'RABBITMQ_ENV_BACKEND_USER', 'guest')
-    config['RABBITMQ_PASSWORD'] = os.environ.get(
+    CONFIG.RABBITMQ_PASSWORD = os.environ.get(
         'RABBITMQ_ENV_BACKEND_PASSWORD', 'guest')
-    config['RABBITMQ_HOST'] = os.environ.get(
+    CONFIG.RABBITMQ_HOST = os.environ.get(
         'RABBITMQ_PORT_5672_TCP_ADDR', 'localhost')
-    config['RABBITMQ_PORT'] = int(os.environ.get(
+    CONFIG.RABBITMQ_PORT = int(os.environ.get(
         'RABBITMQ_PORT_5672_TCP_PORT', 5672))
 
-    config['REDIS_HOST'] = os.environ.get(
+    CONFIG.REDIS_HOST = os.environ.get(
         'REDIS_PORT_6379_ADDR', 'redis')
-    config['REDIS_PORT'] = int(os.environ.get(
+    CONFIG.REDIS_PORT = int(os.environ.get(
         'REDIS_PORT_6379_PORT', 6379))
 
     # app_init_workers()
