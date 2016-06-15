@@ -27,37 +27,6 @@ def unittest():
 
 
 @cli.command()
-def dbtest():
-    """ Only run unit tests that require the database """
-    import pytest
-
-    from dockci.server import get_db_uri
-
-    tests_dir = project_root().join('tests', 'db')
-
-    for pyc_file in tests_dir.visit(fil='*.pyc'):
-        pyc_file.remove()
-
-    if get_db_uri() is None:
-        client = docker.Client(**docker.utils.kwargs_from_env(
-            assert_hostname=False,
-        ))
-
-        try:
-            client.inspect_container('dockci_web_1')
-        except docker.errors.NotFound:
-            pass
-        else:
-            print("Running in dockci_web_1 container")
-            os.execvp('docker', [
-                'docker', 'exec', '-it', 'dockci_web_1',
-                '/code/entrypoint.sh', 'dbtest',
-            ])
-
-    return pytest.main(['--doctest-modules', '-vvrxs', tests_dir.strpath])
-
-
-@cli.command()
 def doctest():
     """ Run doc tests """
     import pytest
