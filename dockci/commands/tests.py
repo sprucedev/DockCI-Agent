@@ -1,6 +1,7 @@
 """ Click commands for running unit/style/static tests """
 import os
 
+import click
 import docker
 
 from dockci.server import cli
@@ -12,7 +13,7 @@ def call_seq(*commands):
     for cmd in commands:
         result = cmd()
         if result is not None and result != 0:
-            return result
+            raise click.Abort()
 
     return 0
 
@@ -27,7 +28,8 @@ def unittest_():
     import pytest
 
     tests_dir = project_root().join('tests')
-    return pytest.main(['--doctest-modules', '-vvrxs', tests_dir.strpath])
+    if not pytest.main(['--doctest-modules', '-vvrxs', tests_dir.strpath]):
+        raise click.Abort()
 
 
 @cli.command()
@@ -40,7 +42,8 @@ def doctest_():
     import pytest
 
     tests_dir = project_root().join('dockci')
-    return pytest.main(['--doctest-modules', '-vvrxs', tests_dir.strpath])
+    if not pytest.main(['--doctest-modules', '-vvrxs', tests_dir.strpath]):
+        raise click.Abort()
 
 
 @cli.command()
@@ -58,7 +61,7 @@ def pep8_():
     report = pep8style.check_files((code_dir.strpath,))
 
     if report.total_errors:
-        return 1
+        raise click.Abort()
 
 
 @cli.command()
@@ -88,8 +91,8 @@ def pylint_forked():
     else:
         _, returncode = os.waitpid(pid, 0)
 
-        # Flask-Script doesn't handle exiting 1024 properly
-        return 0 if returncode == 0 else 1
+        if returncode is not 0:
+            raise click.Abort()
 
 
 @cli.command()
