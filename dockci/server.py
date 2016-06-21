@@ -83,8 +83,8 @@ def init_config():
 
 def get_redis_pool():
     """ Create a configured Redis connection pool """
-    return redis.ConnectionPool(host=APP.config['REDIS_HOST'],
-                                port=APP.config['REDIS_PORT'],
+    return redis.ConnectionPool(host=CONFIG.redis_host,
+                                port=CONFIG.redis_port,
                                 socket_timeout=1,
                                 socket_connect_timeout=1,
                                 )
@@ -104,11 +104,11 @@ def redis_pool():
 def get_pika_conn():
     """ Create a connection to RabbitMQ """
     return pika.BlockingConnection(pika.ConnectionParameters(
-        host=APP.config['RABBITMQ_HOST'],
-        port=APP.config['RABBITMQ_PORT'],
+        host=CONFIG.rabbitmq_host,
+        port=CONFIG.rabbitmq_port,
         credentials=pika.credentials.PlainCredentials(
-            APP.config['RABBITMQ_USER'],
-            APP.config['RABBITMQ_PASSWORD'],
+            CONFIG.rabbitmq_user,
+            CONFIG.rabbitmq_password,
         ),
         heartbeat_interval=60 * 30,  # 30min
     ))
