@@ -74,7 +74,7 @@ def init_config():
         'RABBITMQ_PORT_5672_TCP_PORT', 5672))
 
     CONFIG.redis_host = os.environ.get(
-        'REDIS_PORT_6379_ADDR', 'redis')
+        'REDIS_PORT_6379_ADDR', 'localhost')
     CONFIG.redis_port = int(os.environ.get(
         'REDIS_PORT_6379_PORT', 6379))
 
