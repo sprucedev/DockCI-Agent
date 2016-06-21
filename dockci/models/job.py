@@ -868,7 +868,7 @@ class Job(RestModel):
                 WorkdirStage(self, workdir),
                 GitInfoStage(self, workdir),
                 ExternalStatusStage(self, 'start'),
-                GitChangesStage(self, workdir),
+                #GitChangesStage(self, workdir),
                 GitMtimeStage(self, workdir),
                 TagVersionStage(self, workdir),
                 PushPrepStage(self),
