@@ -241,10 +241,11 @@ class Consumer(object):  # pylint:disable=too-many-public-methods
         project_slug = job_data.pop('project_slug')
         job_slug = job_data.pop('job_slug')
         job = Job.load(project_slug, job_slug, **job_data)
+
+        self.acknowledge_message(basic_deliver.delivery_tag)
         job._run_now()
 
-        #self.acknowledge_message(basic_deliver.delivery_tag)
-        self.reject_message(basic_deliver.delivery_tag)
+        #self.reject_message(basic_deliver.delivery_tag)
 
     def acknowledge_message(self, delivery_tag):
         """Acknowledge the message delivery from RabbitMQ by sending a
