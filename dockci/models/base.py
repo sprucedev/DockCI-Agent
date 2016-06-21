@@ -30,6 +30,8 @@ def abs_detail_url(url):
     )
 
 class RestModel(object):
+    _new = True
+
     def __init__(self, **kwargs):
         for key, val in kwargs.items():
             if key == 'state':  # XXX figure out how to deal with this
@@ -39,8 +41,8 @@ class RestModel(object):
             setattr(self, key, val)
 
     @classmethod
-    def from_data(cls, data):
-        return cls(**data)
+    def from_data(cls, data, new=True):
+        return cls(_new=new, **data)
 
     @classmethod
     def load(cls, *args, **kwargs):
@@ -52,7 +54,7 @@ class RestModel(object):
         response = requests.get(url)
         data = kwargs.copy()
         data.update(response.json())
-        return cls.from_data(cls.SCHEMA.load(data).data)
+        return cls.from_data(cls.SCHEMA.load(data).data, new=False)
 
     def save(self):
         self.save_to(self.url)
@@ -60,10 +62,13 @@ class RestModel(object):
     def save_to(self, url):
         url = abs_detail_url(url)
         data = self.SCHEMA.dump(self).data
-        import logging
-        logging.warning('saving', data)
 
-        response = requests.patch(
+        import logging
+        logging.warning('saving %s with %s', self, data)
+
+        method = requests.put if self.is_new else requests.patch
+
+        response = method(
             url,
             json=data,
             headers={'x-dockci-api-key': CONFIG.api_key},
@@ -76,6 +81,10 @@ class RestModel(object):
                 response.json()
             )
         )
+
+    @property
+    def is_new(self):
+        return self._new is True
 
 class RepoFsMixin(object):
     """ Mixin to add ``display_repo`` and ``command_repo`` properties """
