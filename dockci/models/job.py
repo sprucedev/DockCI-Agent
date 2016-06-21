@@ -170,6 +170,7 @@ class JobStageTmp(RestModel):  # pylint:disable=no-init
 class JobSchema(Schema):
     slug = fields.Str(default=None, allow_none=True, load_only=True)
     state = fields.Str(default=None, allow_none=True, load_only=True)
+    result = fields.Str(default=None, allow_none=True)
     commit = fields.Str(default=None, allow_none=True)
     create_ts = fields.DateTime(default=None, allow_none=True, load_only=True)
     start_ts = fields.DateTime(default=None, allow_none=True)
