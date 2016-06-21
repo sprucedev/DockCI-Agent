@@ -943,27 +943,23 @@ class Job(RestModel):
 
             if not all(prepare):
                 self.result = 'broken'
-                self.db_session.add(self)
-                self.db_session.commit()
+                self.save()
                 return False
 
             if not self._stage_objects['docker_test'].run(0):
                 self.result = 'fail'
-                self.db_session.add(self)
-                self.db_session.commit()
+                self.save()
                 return False
 
             # We should fail the job here because if this is a tagged
             # job, we can't rebuild it
             if not self._stage_objects['docker_push'].run(0):
                 self.result = 'broken'
-                self.db_session.add(self)
-                self.db_session.commit()
+                self.save()
                 return False
 
             self.result = 'success'
-            self.db_session.add(self)
-            self.db_session.commit()
+            self.save()
 
             # Failing this doesn't indicate job failure
             # TODO what kind of a failure would this not working be?
@@ -973,8 +969,7 @@ class Job(RestModel):
         except Exception:  # pylint:disable=broad-except
             self._error_stage('error')
             self.result = 'broken'
-            self.db_session.add(self)
-            self.db_session.commit()
+            self.save()
 
             return False
 
@@ -987,8 +982,7 @@ class Job(RestModel):
                 self._error_stage('post_error')
 
             self.complete_ts = datetime.now()
-            self.db_session.add(self)
-            self.db_session.commit()
+            self.save()
 
     def state_data_for(self, service, state=None, state_msg=None):
         """
