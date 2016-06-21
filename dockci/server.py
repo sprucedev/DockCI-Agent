@@ -78,6 +78,8 @@ def init_config():
     CONFIG.redis_port = int(os.environ.get(
         'REDIS_PORT_6379_PORT', 6379))
 
+    CONFIG.redis_len_expire = 60 * 60  # 1hr
+
     # app_init_workers()
 
 
