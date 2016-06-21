@@ -3,7 +3,7 @@ import click
 import pika
 
 from dockci.consumer import Consumer
-from dockci.server import cli, CONFIG
+from dockci.server import cli, CONFIG, pika_conn_params
 
 
 @cli.command()
@@ -15,14 +15,7 @@ def run(ctx, dockci_url, dockci_apikey):
     CONFIG.dockci_url = dockci_url
     CONFIG.api_key = dockci_apikey
     consumer = Consumer(
-        pika.ConnectionParameters(
-            host=CONFIG.rabbitmq_host,
-            port=CONFIG.rabbitmq_port,
-            credentials=pika.credentials.PlainCredentials(
-                CONFIG.rabbitmq_user,
-                CONFIG.rabbitmq_password,
-            ),
-        ),
+        pika_conn_params(),
         CONFIG.logger.getChild('consumer'),
     )
     consumer.run()

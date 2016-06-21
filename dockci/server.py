@@ -101,9 +101,9 @@ def redis_pool():
         pool.disconnect()
 
 
-def get_pika_conn():
-    """ Create a connection to RabbitMQ """
-    return pika.BlockingConnection(pika.ConnectionParameters(
+def pika_conn_params():
+    """ Connection params for a pika connection """
+    return pika.ConnectionParameters(
         host=CONFIG.rabbitmq_host,
         port=CONFIG.rabbitmq_port,
         credentials=pika.credentials.PlainCredentials(
@@ -111,9 +111,16 @@ def get_pika_conn():
             CONFIG.rabbitmq_password,
         ),
         heartbeat_interval=60 * 30,  # 30min
-    ))
+    )
 
 
+# NOTE: only used for WRITE ops! CONSUMER is different for now
+def get_pika_conn():
+    """ Create a connection to RabbitMQ """
+    return pika.BlockingConnection(pika_conn_params())
+
+
+# NOTE: only used for WRITE ops! CONSUMER is different for now
 @contextmanager
 def pika_conn():
     """ Context manager for getting and closing a pika connection """
