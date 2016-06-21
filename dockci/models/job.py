@@ -144,13 +144,21 @@ class JobStageTmp(RestModel):  # pylint:disable=no-init
             stage_slug=stage_slug,
         )
 
-    _project = None
+    _job = None
 
     @property
     def job(self):
         if self._job is None:
-            self._job = Job.load_url(self.job_detail)
+            try:
+                self._job = Job.load_url(self.job_detail)
+            except AttributeError:
+                return None
+
         return self._job
+
+    @job.setter
+    def job(self, value):
+        self._job = value
 
 
 class JobSchema(Schema):
