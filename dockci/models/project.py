@@ -35,6 +35,7 @@ class ProjectSchema(Schema):
     github_repo_hook = fields.Str(default=None, allow_none=True)
     gitlab_repo_id = fields.Str(default=None, allow_none=True)
     registry_detail = fields.Str(default=None, allow_none=True)
+    target_registry = fields.Str(default=None, allow_none=True)
 
 
 class Project(RestModel, RepoFsMixin):  # pylint:disable=no-init
