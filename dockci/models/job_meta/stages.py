@@ -62,7 +62,7 @@ class JobStageBase(object):
             success=success,
         ))
         stage.success = success
-        self.job.save()
+        stage.save()
 
     def run(self, expected_rc=0):
         """
@@ -92,7 +92,7 @@ class JobStageBase(object):
                     redis_pool=redis_pool_,
                     pika_conn=pika_conn_,
                 )
-                self.job.save()
+                stage.save()
 
                 try:
                     self.returncode = self.runnable(handle)
