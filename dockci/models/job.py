@@ -18,14 +18,14 @@ from itertools import chain
 import docker
 import py.path  # pylint:disable=import-error
 import semver
-import sqlalchemy
 
 from docker.utils import kwargs_from_env
-from flask import url_for
+from marshmallow import Schema, fields, post_load
 
 from .base import RepoFsMixin
 from dockci.exceptions import AlreadyRunError, InvalidServiceTypeError
-from dockci.models.base import ServiceBase
+from dockci.models.base import RestModel, ServiceBase
+from dockci.models.project import Project
 from dockci.models.job_meta.config import JobConfig
 from dockci.models.job_meta.stages import JobStage
 from dockci.models.job_meta.stages_main import (BuildStage,
@@ -47,7 +47,7 @@ from dockci.models.job_meta.stages_prepare_docker import (DockerLoginStage,
                                                           PushPrepStage,
                                                           UtilStage,
                                                           )
-from dockci.server import CONFIG, DB, OAUTH_APPS
+from dockci.server import CONFIG
 from dockci.util import (add_to_url_path,
                          bytes_human_readable,
                          client_kwargs_from_config,
@@ -126,74 +126,90 @@ PUSH_REASON_MESSAGES = {
 }
 
 
-class JobStageTmp(DB.Model):  # pylint:disable=no-init
+class JobStageTmpSchema(Schema):
+    success = fields.Bool()
+    job_detail = fields.Str()
+
+
+class JobStageTmp(RestModel):  # pylint:disable=no-init
     """ Quick and dirty list of job stages for the time being """
-    id = DB.Column(DB.Integer(), primary_key=True)
-    slug = DB.Column(DB.String(31))
-    job_id = DB.Column(DB.Integer, DB.ForeignKey('job.id'), index=True)
-    success = DB.Column(DB.Boolean(), nullable=True)
-    job = DB.relationship(
-        'Job',
-        foreign_keys="JobStageTmp.job_id",
-        backref=DB.backref(
-            'job_stages',
-            order_by=sqlalchemy.asc('id'),
-            ))
+    SCHEMA = JobStageTmpSchema()
+
+    @classmethod
+    def url_for(_, project_slug, job_slug, stage_slug):
+        return '{dockci_url}/api/v1/projects/{project_slug}/jobs/{job_slug}/stages/{stage_slug}'.format(
+            dockci_url=CONFIG.dockci_url,
+            project_slug=project_slug,
+            job_slug=job_slug,
+            stage_slug=stage_slug,
+        )
+
+    _project = None
+
+    @property
+    def job(self):
+        if self._job is None:
+            self._job = Job.load_url(self.job_detail)
+        return self._job
 
 
-# pylint:disable=too-many-instance-attributes,no-init,too-many-public-methods
-class Job(DB.Model, RepoFsMixin):
-    """ An individual project job, and result """
+class JobSchema(Schema):
+    slug = fields.Str(load_only=True)
+    state = fields.Str(load_only=True)
+    commit = fields.Str()
+    create_ts = fields.DateTime(load_only=True)
+    start_ts = fields.DateTime()
+    complete_ts = fields.DateTime()
+    tag = fields.Str(),
+    git_branch = fields.Str()
+    project_detail = fields.Str(load_only=True)
+    project_slug = fields.Str(load_only=True)
+    display_repo = fields.Str(load_only=True)
+    image_id = fields.Str()
+    container_id = fields.Str()
+    docker_client_host = fields.Str()
+    exit_code = fields.Int()
+    git_author_name = fields.Str()
+    git_author_email = fields.Str()
+    git_committer_name = fields.Str()
+    git_committer_email = fields.Str()
 
-    id = DB.Column(DB.Integer(), primary_key=True)
+class Job(RestModel):
+    SCHEMA = JobSchema()
 
-    create_ts = DB.Column(
-        DB.DateTime(), nullable=False, default=datetime.now,
-    )
-    start_ts = DB.Column(DB.DateTime())
-    complete_ts = DB.Column(DB.DateTime())
+    @classmethod
+    def url_for(_, project_slug, job_slug):
+        return '{dockci_url}/api/v1/projects/{project_slug}/jobs/{job_slug}'.format(
+            dockci_url=CONFIG.dockci_url,
+            project_slug=project_slug,
+            job_slug=job_slug,
+        )
 
-    result = DB.Column(DB.Enum(
-        *JobResult.__members__,
-        name='job_results'
-    ), index=True)
-    repo_fs = DB.Column(DB.Text(), nullable=False)
-    commit = DB.Column(DB.String(41), nullable=False)
-    tag = DB.Column(DB.Text())
-    image_id = DB.Column(DB.String(65))
-    container_id = DB.Column(DB.String(65))
-    exit_code = DB.Column(DB.Integer())
-    docker_client_host = DB.Column(DB.Text())
-    git_branch = DB.Column(DB.Text())
-    git_author_name = DB.Column(DB.Text())
-    git_author_email = DB.Column(DB.Text())
-    git_committer_name = DB.Column(DB.Text())
-    git_committer_email = DB.Column(DB.Text())
-    git_changes = DB.Column(DB.Text())
+    @property
+    def url(self):
+        """ URL for this job """
+        return Job.url_for(self.project_slug, self.slug)
 
-    ancestor_job_id = DB.Column(DB.Integer, DB.ForeignKey('job.id'))
-    child_jobs = DB.relationship(
-        'Job',
-        foreign_keys="Job.ancestor_job_id",
-        backref=DB.backref('ancestor_job', remote_side=[id]),
-    )
-    project_id = DB.Column(DB.Integer, DB.ForeignKey('project.id'), index=True)
+    _project = None
+
+    @property
+    def project(self):
+        if self._project is None:
+            try:
+                self._project = Project.load_url(self.project_detail)
+            except AttributeError:
+                return None
+
+        return self._project
+
+    @project.setter
+    def project(self, value):
+        self._project = value
 
     _job_config = None
-    _db_session = None
-
-    # Defaults in init_transient
-    _provisioned_containers = None
-    _old_image_ids = None
-    _stage_objects = None
 
     def __init__(self, *args, **kwargs):
         super(Job, self).__init__(*args, **kwargs)
-        self.init_transient()
-
-    @sqlalchemy.orm.reconstructor
-    def init_transient(self):
-        """ SLQAlchemy doesn't __init__, so need this separately """
         self._provisioned_containers = []
         self._old_image_ids = []
         self._stage_objects = {}
@@ -201,8 +217,8 @@ class Job(DB.Model, RepoFsMixin):
     def __str__(self):
         try:
             slug = self.slug
-        except TypeError:
-            slug = self.id
+        except AttributeError:
+            slug = '<unknown>'
 
         return '<{klass}: {project_slug}/{job_slug}>'.format(
             klass=self.__class__.__name__,
@@ -211,26 +227,11 @@ class Job(DB.Model, RepoFsMixin):
         )
 
     @property
-    def db_session(self):
-        """
-        DB session for this Job is used in job workers without an application
-        context
-        """
-        if self._db_session is None:
-            self._db_session = DB.session()
-        return self._db_session
-
-    @property
     def job_config(self):
         """ JobConfig for this Job """
         if self._job_config is None:
             self._job_config = JobConfig(self)
         return self._job_config
-
-    @property
-    def slug(self):
-        """ Generated web slug for this job """
-        return self.slug_from_id(self.id)
 
     @classmethod
     def id_from_slug(cls, slug):
@@ -260,19 +261,14 @@ class Job(DB.Model, RepoFsMixin):
         """ Shortcut for the API to get project slug """
         return self.project.slug
 
-    @property
-    def url(self):
-        """ URL for this job """
-        return url_for('job_view',
-                       project_slug=self.project.slug,
-                       job_slug=self.slug)
+    @project_slug.setter
+    def project_slug(self, value):
+        if self.project is not None:
+            if self.project.slug != value:
+                self.project.slug = None
 
-    @property
-    def url_ext(self):
-        """ URL for this project """
-        return ext_url_for('job_view',
-                           project_slug=self.project.slug,
-                           job_slug=self.slug)
+        if self.project is None:
+            self.project = Project.load(value)
 
     @property
     def github_api_status_endpoint(self):
@@ -864,8 +860,7 @@ class Job(DB.Model, RepoFsMixin):
                 return self._run_now(py.path.local(workdir))
 
         self.start_ts = datetime.now()
-        self.db_session.add(self)
-        self.db_session.commit()
+        self.save()
 
         self._stage_objects = {
             stage.slug: stage

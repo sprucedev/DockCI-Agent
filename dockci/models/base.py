@@ -3,8 +3,78 @@ import re
 
 from collections import defaultdict
 
-from dockci.models.auth import AuthenticatedRegistry
+import requests
 
+# from dockci.models.auth import AuthenticatedRegistry
+from dockci.server import CONFIG
+
+
+def abs_detail_url(url):
+    """ Absolute URL from possibly partial URL, assuming DockCI as root
+
+    Examples:
+
+      >>> abs_detail_url('http://localhost')
+      'http://localhost'
+
+      >>> CONFIG.dockci_url = 'http://dockcitest'
+      >>> abs_detail_url('/api/v1/test')
+      'http://dockcitest/api/v1/test'
+    """
+    if url.startswith('http'):
+        return url
+
+    return '{dockci_url}{url}'.format(
+        dockci_url=CONFIG.dockci_url,
+        url=url,
+    )
+
+class RestModel(object):
+    @classmethod
+    def from_data(cls, data):
+        model = cls()
+        for key, val in data.items():
+            if key == 'state':  # XXX figure out how to deal with this
+                continue
+            import logging;
+            logging.warning('setting %s', key)
+            setattr(model, key, val)
+        return model
+
+    @classmethod
+    def load(cls, *args, **kwargs):
+        return cls.load_url(cls.url_for(*args), **kwargs)
+
+    @classmethod
+    def load_url(cls, url, **kwargs):
+        url = abs_detail_url(url)
+        response = requests.get(url)
+        data = kwargs.copy()
+        data.update(response.json())
+        return cls.from_data(cls.SCHEMA.load(data).data)
+
+    def save(self):
+        self.save_to(self.url)
+
+    def save_to(self, url):
+        url = abs_detail_url(url)
+        data = self.SCHEMA.dump(self).data
+        import logging
+        logging.warning('saving', data)
+
+        response = requests.patch(
+            url,
+            json=data,
+            headers={'x-dockci-api-key': CONFIG.api_key},
+        )
+
+        # XXX not an assert
+        assert response.status_code >= 200 and response.status_code < 300, (
+            "Failed to save. HTTP %d: %s" % (
+                response.status_code,
+                response.json()
+            )
+        )
 
 class RepoFsMixin(object):
     """ Mixin to add ``display_repo`` and ``command_repo`` properties """

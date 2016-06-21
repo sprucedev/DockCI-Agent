@@ -11,6 +11,7 @@ cffi==1.6.0               # via bcrypt, pygit2
 click==6.6
 docker-py==1.5.0
 hiredis==0.2.0
+marshmallow==2.7.3
 pika==0.10.0
 py==1.4.30
 pycparser==2.14           # via cffi
