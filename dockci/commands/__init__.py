@@ -1,2 +1,2 @@
 """ Commands for DockCI click """
-from . import tests
+from . import daemon, tests
