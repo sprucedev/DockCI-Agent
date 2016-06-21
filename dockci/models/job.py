@@ -128,7 +128,7 @@ PUSH_REASON_MESSAGES = {
 
 class JobStageTmpSchema(Schema):
     success = fields.Bool(default=None)
-    job_detail = fields.Str(default=None)
+    job_detail = fields.Str(default=None, load_only=True)
 
 
 class JobStageTmp(RestModel):  # pylint:disable=no-init
@@ -142,6 +142,12 @@ class JobStageTmp(RestModel):  # pylint:disable=no-init
             project_slug=project_slug,
             job_slug=job_slug,
             stage_slug=stage_slug,
+        )
+
+    @property
+    def url(self):
+        return JobStageTmp.url_for(
+            self.job.project.slug, self.job.slug, self.slug,
         )
 
     _job = None
