@@ -243,7 +243,8 @@ class Consumer(object):  # pylint:disable=too-many-public-methods
         job = Job.load(project_slug, job_slug, **job_data)
         job._run_now()
 
-        self.acknowledge_message(basic_deliver.delivery_tag)
+        #self.acknowledge_message(basic_deliver.delivery_tag)
+        self.reject_message(basic_deliver.delivery_tag)
 
     def acknowledge_message(self, delivery_tag):
         """Acknowledge the message delivery from RabbitMQ by sending a
@@ -254,6 +255,17 @@ class Consumer(object):  # pylint:disable=too-many-public-methods
         """
         self._logger.info('Acknowledging message %s', delivery_tag)
         self._channel.basic_ack(delivery_tag)
+
+    def reject_message(self, delivery_tag, requeue=True):
+        """Reject the message delivery from RabbitMQ by sending a
+        Basic.Nack RPC method for the delivery tag.
+
+        :param int delivery_tag: The delivery tag from the Basic.Deliver frame
+        :param bool requeue: Whether to try and requeue the message
+
+        """
+        self._logger.info('Rejecting message %s', delivery_tag)
+        self._channel.basic_nack(delivery_tag, requeue=requeue)
 
     def stop_consuming(self):
         """Tell RabbitMQ that you would like to stop consuming by sending the
