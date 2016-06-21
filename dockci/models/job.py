@@ -127,8 +127,8 @@ PUSH_REASON_MESSAGES = {
 
 
 class JobStageTmpSchema(Schema):
-    success = fields.Bool(default=None)
-    job_detail = fields.Str(default=None, load_only=True)
+    success = fields.Bool(default=None, allow_none=True)
+    job_detail = fields.Str(default=None, allow_none=True, load_only=True)
 
 
 class JobStageTmp(RestModel):  # pylint:disable=no-init
@@ -168,26 +168,26 @@ class JobStageTmp(RestModel):  # pylint:disable=no-init
 
 
 class JobSchema(Schema):
-    slug = fields.Str(default=None, load_only=True)
-    state = fields.Str(default=None, load_only=True)
-    commit = fields.Str(default=None)
-    create_ts = fields.DateTime(default=None, load_only=True)
-    start_ts = fields.DateTime(default=None)
-    complete_ts = fields.DateTime(default=None)
-    tag = fields.Str(default=None),
-    git_branch = fields.Str(default=None)
-    project_detail = fields.Str(default=None, load_only=True)
-    project_slug = fields.Str(default=None, load_only=True)
-    display_repo = fields.Str(default=None, load_only=True)
-    command_repo = fields.Str(default=None, load_only=True)
-    image_id = fields.Str(default=None)
-    container_id = fields.Str(default=None)
-    #docker_client_host = fields.Str(default=None)
-    exit_code = fields.Int(default=None)
-    git_author_name = fields.Str(default=None)
-    git_author_email = fields.Str(default=None)
-    git_committer_name = fields.Str(default=None)
-    git_committer_email = fields.Str(default=None)
+    slug = fields.Str(default=None, allow_none=True, load_only=True)
+    state = fields.Str(default=None, allow_none=True, load_only=True)
+    commit = fields.Str(default=None, allow_none=True)
+    create_ts = fields.DateTime(default=None, allow_none=True, load_only=True)
+    start_ts = fields.DateTime(default=None, allow_none=True)
+    complete_ts = fields.DateTime(default=None, allow_none=True)
+    tag = fields.Str(default=None, allow_none=True),
+    git_branch = fields.Str(default=None, allow_none=True)
+    project_detail = fields.Str(default=None, allow_none=True, load_only=True)
+    project_slug = fields.Str(default=None, allow_none=True, load_only=True)
+    display_repo = fields.Str(default=None, allow_none=True, load_only=True)
+    command_repo = fields.Str(default=None, allow_none=True, load_only=True)
+    image_id = fields.Str(default=None, allow_none=True)
+    container_id = fields.Str(default=None, allow_none=True)
+    #docker_client_host = fields.Str(default=None, allow_none=True)
+    exit_code = fields.Int(default=None, allow_none=True)
+    git_author_name = fields.Str(default=None, allow_none=True)
+    git_author_email = fields.Str(default=None, allow_none=True)
+    git_committer_name = fields.Str(default=None, allow_none=True)
+    git_committer_email = fields.Str(default=None, allow_none=True)
 
 class Job(RestModel):
     SCHEMA = JobSchema()
