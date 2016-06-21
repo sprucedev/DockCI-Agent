@@ -694,9 +694,7 @@ class ServiceBase(object):
             ):
                 return None
 
-            self._project_dynamic = Project.query.filter_by(
-                slug=self.repo,
-            ).first()
+            self._project_dynamic = Project.load(self.repo)
 
         return self._project_dynamic
 
