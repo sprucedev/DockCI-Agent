@@ -30,16 +30,17 @@ def abs_detail_url(url):
     )
 
 class RestModel(object):
-    @classmethod
-    def from_data(cls, data):
-        model = cls()
-        for key, val in data.items():
+    def __init__(self, **kwargs):
+        for key, val in kwargs.items():
             if key == 'state':  # XXX figure out how to deal with this
                 continue
             import logging;
             logging.warning('setting %s', key)
-            setattr(model, key, val)
-        return model
+            setattr(self, key, val)
+
+    @classmethod
+    def from_data(cls, data):
+        return cls(**data)
 
     @classmethod
     def load(cls, *args, **kwargs):
