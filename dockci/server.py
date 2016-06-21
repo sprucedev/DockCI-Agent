@@ -64,18 +64,18 @@ def init_config():
     # APP.config['MAIL_PASSWORD'] = CONFIG.mail_password
     # APP.config['MAIL_DEFAULT_SENDER'] = CONFIG.mail_default_sender
     #
-    CONFIG.RABBITMQ_USER = os.environ.get(
+    CONFIG.rabbitmq_user = os.environ.get(
         'RABBITMQ_ENV_BACKEND_USER', 'guest')
-    CONFIG.RABBITMQ_PASSWORD = os.environ.get(
+    CONFIG.rabbitmq_password = os.environ.get(
         'RABBITMQ_ENV_BACKEND_PASSWORD', 'guest')
-    CONFIG.RABBITMQ_HOST = os.environ.get(
+    CONFIG.rabbitmq_host = os.environ.get(
         'RABBITMQ_PORT_5672_TCP_ADDR', 'localhost')
-    CONFIG.RABBITMQ_PORT = int(os.environ.get(
+    CONFIG.rabbitmq_port = int(os.environ.get(
         'RABBITMQ_PORT_5672_TCP_PORT', 5672))
 
-    CONFIG.REDIS_HOST = os.environ.get(
+    CONFIG.redis_host = os.environ.get(
         'REDIS_PORT_6379_ADDR', 'redis')
-    CONFIG.REDIS_PORT = int(os.environ.get(
+    CONFIG.redis_port = int(os.environ.get(
         'REDIS_PORT_6379_PORT', 6379))
 
     # app_init_workers()
