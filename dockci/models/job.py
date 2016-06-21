@@ -936,7 +936,7 @@ class Job(RestModel):
 
             prepare = (stage() for stage in chain(
                 (
-                    lambda: self._stage_objects['git_changes'].run(0),
+                    # lambda: self._stage_objects['git_changes'].run(0),
                     lambda: self._stage_objects['git_mtime'].run(None),
                     tag_stage,
                     push_prep_stage,
