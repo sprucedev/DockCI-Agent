@@ -358,8 +358,7 @@ class Job(RestModel):
                 )
 
             self.docker_client_host = docker_client_args['base_url']
-            self.db_session.add(self)
-            self.db_session.commit()
+            self.save()
 
             self._docker_client = docker.Client(**docker_client_args)
 

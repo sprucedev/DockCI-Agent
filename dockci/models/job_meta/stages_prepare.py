@@ -111,8 +111,7 @@ class WorkdirStage(JobStageBase):
         oid = getattr(git_obj, 'oid', None) or getattr(git_obj, 'target')
         job.commit = oid.hex
 
-        job.db_session.add(job)
-        job.db_session.commit()
+        job.save()
 
         handle.write("Checking out %s %s\n" % (ref_type_str, ref_name_str))
         repo.reset(  # pylint:disable=no-member
@@ -175,8 +174,7 @@ class GitInfoStage(JobStageBase):
         else:
             handle.write(("Branch is %s\n" % self.job.git_branch).encode())
 
-        self.job.db_session.add(self.job)
-        self.job.db_session.commit()
+        self.job.save()
 
         return True
 
@@ -520,7 +518,6 @@ class TagVersionStage(JobStageBase):
 
         if tag_count > 0 and self.job is not None:
             self.job.tag = commit_tag.name
-            self.job.db_session.add(self.job)
-            self.job.db_session.commit()
+            self.job.save()
 
         return True

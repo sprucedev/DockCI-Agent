@@ -176,8 +176,7 @@ class TestStage(DockerStage):
         if self.job.job_config.skip_tests:
             handle.write("Skipping tests, as per configuration".encode())
             self.job.exit_code = 0
-            self.job.db_session.add(self.job)
-            self.job.db_session.commit()
+            self.job.save()
             return 0
 
         return super(TestStage, self).runnable(handle)
@@ -191,8 +190,7 @@ class TestStage(DockerStage):
             self.job.image_id, 'ci'
         )
         self.job.container_id = container_details['Id']
-        self.job.db_session.add(self.job)
-        self.job.db_session.commit()
+        self.job.save()
 
         def link_tuple(service_info):
             """
@@ -240,6 +238,5 @@ class TestStage(DockerStage):
             self.job.container_id,
         )
         self.job.exit_code = details['State']['ExitCode']
-        self.job.db_session.add(self.job)
-        self.job.db_session.commit()
+        self.job.save()
         return details['State']['ExitCode']
