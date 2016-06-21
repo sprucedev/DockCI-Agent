@@ -309,10 +309,8 @@ class Job(RestModel):
         """
         if self.result is not None:
             return self.result
-        elif self.job_stages:
-            return 'running'  # TODO check if running or dead
-        else:
-            return 'queued'  # TODO check if queued or queue fail
+
+        return 'running'
 
     def changed_result(self, workdir=None):
         """
