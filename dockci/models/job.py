@@ -127,8 +127,8 @@ PUSH_REASON_MESSAGES = {
 
 
 class JobStageTmpSchema(Schema):
-    success = fields.Bool()
-    job_detail = fields.Str()
+    success = fields.Bool(default=None)
+    job_detail = fields.Str(default=None)
 
 
 class JobStageTmp(RestModel):  # pylint:disable=no-init
@@ -162,25 +162,25 @@ class JobStageTmp(RestModel):  # pylint:disable=no-init
 
 
 class JobSchema(Schema):
-    slug = fields.Str(load_only=True)
-    state = fields.Str(load_only=True)
-    commit = fields.Str()
-    create_ts = fields.DateTime(load_only=True)
-    start_ts = fields.DateTime()
-    complete_ts = fields.DateTime()
-    tag = fields.Str(),
-    git_branch = fields.Str()
-    project_detail = fields.Str(load_only=True)
-    project_slug = fields.Str(load_only=True)
-    display_repo = fields.Str(load_only=True)
-    image_id = fields.Str()
-    container_id = fields.Str()
-    docker_client_host = fields.Str()
-    exit_code = fields.Int()
-    git_author_name = fields.Str()
-    git_author_email = fields.Str()
-    git_committer_name = fields.Str()
-    git_committer_email = fields.Str()
+    slug = fields.Str(default=None, load_only=True)
+    state = fields.Str(default=None, load_only=True)
+    commit = fields.Str(default=None)
+    create_ts = fields.DateTime(default=None, load_only=True)
+    start_ts = fields.DateTime(default=None)
+    complete_ts = fields.DateTime(default=None)
+    tag = fields.Str(default=None),
+    git_branch = fields.Str(default=None)
+    project_detail = fields.Str(default=None, load_only=True)
+    project_slug = fields.Str(default=None, load_only=True)
+    display_repo = fields.Str(default=None, load_only=True)
+    image_id = fields.Str(default=None)
+    container_id = fields.Str(default=None)
+    #docker_client_host = fields.Str(default=None)
+    exit_code = fields.Int(default=None)
+    git_author_name = fields.Str(default=None)
+    git_author_email = fields.Str(default=None)
+    git_committer_name = fields.Str(default=None)
+    git_committer_email = fields.Str(default=None)
 
 class Job(RestModel):
     SCHEMA = JobSchema()
@@ -358,7 +358,7 @@ class Job(RestModel):
                 )
 
             self.docker_client_host = docker_client_args['base_url']
-            self.save()
+            # self.save()
 
             self._docker_client = docker.Client(**docker_client_args)
 

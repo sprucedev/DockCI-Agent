@@ -25,16 +25,16 @@ DOCKER_REPO_RE = re.compile(r'[a-z0-9-_.]+')
 
 
 class ProjectSchema(Schema):
-    slug = fields.Str()
-    name = fields.Str()
-    utility = fields.Bool()
-    status = fields.Str()
-    #display_repo = fields.Str()
-    branch_pattern = fields.Str()
-    github_repo_id = fields.Str()
-    github_repo_hook = fields.Str()
-    gitlab_repo_id = fields.Str()
-    registry_detail = fields.Str()
+    slug = fields.Str(default=None)
+    name = fields.Str(default=None)
+    utility = fields.Bool(default=None)
+    status = fields.Str(default=None)
+    #display_repo = fields.Str(default=None)
+    branch_pattern = fields.Str(default=None)
+    github_repo_id = fields.Str(default=None)
+    github_repo_hook = fields.Str(default=None)
+    gitlab_repo_id = fields.Str(default=None)
+    registry_detail = fields.Str(default=None)
 
 
 class Project(RestModel, RepoFsMixin):  # pylint:disable=no-init
