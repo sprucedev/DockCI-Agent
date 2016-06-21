@@ -179,6 +179,7 @@ class JobSchema(Schema):
     project_detail = fields.Str(default=None, load_only=True)
     project_slug = fields.Str(default=None, load_only=True)
     display_repo = fields.Str(default=None, load_only=True)
+    command_repo = fields.Str(default=None, load_only=True)
     image_id = fields.Str(default=None)
     container_id = fields.Str(default=None)
     #docker_client_host = fields.Str(default=None)
