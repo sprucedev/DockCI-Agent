@@ -880,7 +880,7 @@ class Job(RestModel):
             for stage in [
                 WorkdirStage(self, workdir),
                 GitInfoStage(self, workdir),
-                ExternalStatusStage(self, 'start'),
+                #ExternalStatusStage(self, 'start'),
                 #GitChangesStage(self, workdir),
                 GitMtimeStage(self, workdir),
                 TagVersionStage(self, workdir),
@@ -891,7 +891,7 @@ class Job(RestModel):
                 TestStage(self),
                 PushStage(self),
                 FetchStage(self),
-                ExternalStatusStage(self, 'complete'),
+                #ExternalStatusStage(self, 'complete'),
                 CleanupStage(self),
             ]
         }
@@ -951,8 +951,8 @@ class Job(RestModel):
                 )
             ))
 
-            if self.project.github_repo_id:  # TODO GitLab
-                self._stage_objects['external_status_start'].run(0)
+            # if self.project.github_repo_id:  # TODO GitLab
+            #     self._stage_objects['external_status_start'].run(0)
 
             if not all(prepare):
                 self.result = 'broken'
@@ -988,7 +988,7 @@ class Job(RestModel):
 
         finally:
             try:
-                self._stage_objects['external_status_complete'].run(0)
+                # self._stage_objects['external_status_complete'].run(0)
                 self._stage_objects['cleanup'].run(None)
 
             except Exception:  # pylint:disable=broad-except
