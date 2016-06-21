@@ -175,7 +175,7 @@ class JobSchema(Schema):
     create_ts = fields.DateTime(default=None, allow_none=True, load_only=True)
     start_ts = fields.DateTime(default=None, allow_none=True)
     complete_ts = fields.DateTime(default=None, allow_none=True)
-    tag = fields.Str(default=None, allow_none=True),
+    tag = fields.Str(default=None, allow_none=True)
     git_branch = fields.Str(default=None, allow_none=True)
     project_detail = fields.Str(default=None, allow_none=True, load_only=True)
     project_slug = fields.Str(default=None, allow_none=True, load_only=True)
