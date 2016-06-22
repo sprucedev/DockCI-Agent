@@ -8,3 +8,4 @@
 - external status stages
 - target registry
 - docker login, auth registries (reenable things commented in this commit)
+- docker client configured from env

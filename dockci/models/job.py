@@ -347,26 +347,27 @@ class Job(RestModel):
         CACHED VALUES NOT AVAILABLE OUTSIDE FORK
         """
         if self._docker_client is None:
-            if self.docker_client_host is not None:
-                for host_str in CONFIG.docker_hosts:
-                    if host_str.startswith(self.docker_client_host):
-                        docker_client_args = client_kwargs_from_config(
-                            host_str,
-                        )
-
-            elif CONFIG.docker_use_env_vars:
-                docker_client_args = kwargs_from_env()
-
-            else:
-                docker_client_args = client_kwargs_from_config(
-                    # TODO real load balancing, queueing
-                    random.choice(CONFIG.docker_hosts),
-                )
-
-            self.docker_client_host = docker_client_args['base_url']
-            # self.save()
-
-            self._docker_client = docker.Client(**docker_client_args)
+            self._docker_client = docker.Client()
+            # if self.docker_client_host is not None:
+            #     for host_str in CONFIG.docker_hosts:
+            #         if host_str.startswith(self.docker_client_host):
+            #             docker_client_args = client_kwargs_from_config(
+            #                 host_str,
+            #             )
+            #
+            # elif CONFIG.docker_use_env_vars:
+            #     docker_client_args = kwargs_from_env()
+            #
+            # else:
+            #     docker_client_args = client_kwargs_from_config(
+            #         # TODO real load balancing, queueing
+            #         random.choice(CONFIG.docker_hosts),
+            #     )
+            #
+            # self.docker_client_host = docker_client_args['base_url']
+            # # self.save()
+            #
+            # self._docker_client = docker.Client(**docker_client_args)
 
         return self._docker_client
 
