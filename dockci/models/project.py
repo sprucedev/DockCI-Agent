@@ -110,3 +110,24 @@ class Project(RestModel, RepoFsMixin):  # pylint:disable=no-init
             )
 
         return self.repo
+
+    def latest_job(self,
+                   passed=None,
+                   versioned=None,
+                   tag=None,
+                   ):
+        from .job import Job
+        response = requests.get(
+            '%s/jobs' % self.url,
+            params=dict(
+                per_page=1,
+                versioned=versioned,
+                passed=passed,
+                tag=tag,
+            )
+        )
+        assert response.status_code == 200
+        try:
+            return Job.load_url(response.json()['items'][0]['detail'])
+        except IndexError:
+            return None
