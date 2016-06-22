@@ -558,6 +558,9 @@ class ServiceBase(object):
         if lookup_allow is None:
             lookup_allow = defaultdict(lambda: True)
 
+        lookup_allow['auth_registry'] = False
+        return None
+
         if False:  # help pylint understand our return value
             return AuthenticatedRegistry()
 
@@ -843,10 +846,11 @@ class ServiceBase(object):
         if name and (full or self.has_name):
             string = "%s - " % self.name
         if full or self.has_base_registry or self.has_auth_registry:
-            if self.has_auth_registry:
-                string += '%s/' % self.auth_registry.base_name
-            else:
-                string += '%s/' % self.base_registry
+            # if self.has_auth_registry:
+            #     string += '%s/' % self.auth_registry.base_name
+            # else:
+            #     string += '%s/' % self.base_registry
+            string += '%s/' % self.base_registry
         if full or self.has_repo:
             string += self.repo
         if tag and (full or self.has_tag):

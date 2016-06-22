@@ -885,7 +885,7 @@ class Job(RestModel):
                 GitMtimeStage(self, workdir),
                 TagVersionStage(self, workdir),
                 PushPrepStage(self),
-                DockerLoginStage(self, workdir),
+                # DockerLoginStage(self, workdir),
                 ProvisionStage(self),
                 BuildStage(self, workdir),
                 TestStage(self),
@@ -940,7 +940,7 @@ class Job(RestModel):
                     lambda: self._stage_objects['git_mtime'].run(None),
                     tag_stage,
                     push_prep_stage,
-                    lambda: self._stage_objects['docker_login'].run(0),
+                    # lambda: self._stage_objects['docker_login'].run(0),
                 ), (
                     util_stage_wrapper(util_suffix)
                     for util_suffix
