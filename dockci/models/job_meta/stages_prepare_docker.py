@@ -192,21 +192,23 @@ class PushPrepStage(JobStageBase):
         handle.flush()
 
         from dockci.models.job import Job, JobResult
-        job_count = self.job.project.jobs.filter(
-            Job.result.in_((JobResult.success.value, None)),
-            Job.tag.in_(self.job.tag_tags_set),
-        ).count()
 
-        if job_count:
-            raise AlreadyBuiltError(
-                'Version %s of %s already built' % (
-                    self.job.tag,
-                    self.job.project.slug,
-                )
+        for tag in self.job.tag_tags_set:
+            job = self.job.project.latest_job(
+                passed=True,
+                tag=tag,
             )
-        else:
-            handle.write("OKAY!\n".encode())
-            handle.flush()
+
+            if job is not None:
+                raise AlreadyBuiltError(
+                    'Version %s of %s already built' % (
+                        self.job.tag,
+                        self.job.project.slug,
+                    )
+                )
+
+        handle.write("OKAY!\n".encode())
+        handle.flush()
 
     def runnable(self, handle):
         if self.job.tag_push_candidate:
