@@ -51,6 +51,8 @@ class RestModel(object):
     @classmethod
     def load_url(cls, url, **kwargs):
         url = abs_detail_url(url)
+        import logging;
+        logging.warning('loading %s', url)
         response = requests.get(
             url,
             headers={'x-dockci-api-key': CONFIG.api_key},
