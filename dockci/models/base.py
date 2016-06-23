@@ -566,11 +566,10 @@ class ServiceBase(object):
 
     def _get_auth_registry(self, lookup_allow=None):
         """ Dynamically get the auth_registry from other values """
+        from .auth import AuthenticatedRegistry
+
         if lookup_allow is None:
             lookup_allow = defaultdict(lambda: True)
-
-        lookup_allow['auth_registry'] = False
-        return None
 
         if False:  # help pylint understand our return value
             return AuthenticatedRegistry()
@@ -586,10 +585,9 @@ class ServiceBase(object):
             self.has_base_registry and
             self._auth_registry_dynamic is None
         ):
-            self._auth_registry_dynamic = \
-                AuthenticatedRegistry.query.filter_by(
-                    base_name=self._get_base_registry(lookup_allow),
-                ).first()
+            self._auth_registry_dynamic = AuthenticatedRegistry.load(
+                self._get_base_registry(lookup_allow),
+            )
 
         if (
             lookup_allow['project'] and
@@ -600,10 +598,9 @@ class ServiceBase(object):
                 self._auth_registry_dynamic = project.target_registry
 
         if self._auth_registry_dynamic is None and self.use_db:
-            self._auth_registry_dynamic = \
-                AuthenticatedRegistry.query.filter_by(
-                    base_name='docker.io',
-                ).first()
+            self._auth_registry_dynamic = AuthenticatedRegistry.load(
+                'docker.io',
+            )
 
         return self._auth_registry_dynamic
 
@@ -857,11 +854,10 @@ class ServiceBase(object):
         if name and (full or self.has_name):
             string = "%s - " % self.name
         if full or self.has_base_registry or self.has_auth_registry:
-            # if self.has_auth_registry:
-            #     string += '%s/' % self.auth_registry.base_name
-            # else:
-            #     string += '%s/' % self.base_registry
-            string += '%s/' % self.base_registry
+            if self.has_auth_registry:
+                string += '%s/' % self.auth_registry.base_name
+            else:
+                string += '%s/' % self.base_registry
         if full or self.has_repo:
             string += self.repo
         if tag and (full or self.has_tag):
