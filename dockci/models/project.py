@@ -14,7 +14,7 @@ import requests
 from marshmallow import Schema, fields, post_load
 
 from .auth import AuthenticatedRegistry
-from .base import RepoFsMixin, RestModel
+from .base import RestModel
 from dockci.server import CONFIG
 from dockci.util import (ext_url_for,
                          is_git_ancestor,
@@ -41,7 +41,7 @@ class ProjectSchema(Schema):
                                         load_from='target_registry')
 
 
-class Project(RestModel, RepoFsMixin):  # pylint:disable=no-init
+class Project(RestModel):  # pylint:disable=no-init
     """
     A project, representing a container to be built
     """
@@ -97,22 +97,6 @@ class Project(RestModel, RepoFsMixin):  # pylint:disable=no-init
             dockci_url=CONFIG.dockci_url,
             project_slug=project_slug,
         )
-
-    @property
-    def repo_fs(self):
-        """ Format string for the repo """
-        if self.is_type('gitlab'):
-            gitlab_parts = list(urlparse(CONFIG.gitlab_base_url))
-            gitlab_parts[1] = 'oauth2:{token_key}@%s' % gitlab_parts[1]
-            gitlab_parts[2] = '%s.git' % self.gitlab_repo_id
-            return urlunparse(gitlab_parts)
-
-        elif self.is_type('github'):
-            return 'https://oauth2:{token_key}@github.com/%s.git' % (
-                self.github_repo_id
-            )
-
-        return self.repo
 
     def latest_job(self,
                    passed=None,

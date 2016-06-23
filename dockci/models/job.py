@@ -22,7 +22,6 @@ import semver
 from docker.utils import kwargs_from_env
 from marshmallow import Schema, fields, post_load
 
-from .base import RepoFsMixin
 from dockci.exceptions import AlreadyRunError, InvalidServiceTypeError
 from dockci.models.base import RestModel, ServiceBase
 from dockci.models.project import Project
