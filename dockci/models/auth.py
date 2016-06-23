@@ -1,22 +1,13 @@
 """
 Users and permissions models
 """
+from marshmallow import Schema, fields
 
-import sqlalchemy
-
-from flask_security import UserMixin, RoleMixin
-from flask_security.datastore import SQLAlchemyUserDatastore
-
-from dockci.server import DB
-
-ROLES_USERS = DB.Table(
-    'roles_users',
-    DB.Column('user_id', DB.Integer(), DB.ForeignKey('user.id'), index=True),
-    DB.Column('role_id', DB.Integer(), DB.ForeignKey('role.id')),
-)
+from .base import RestModel
+from dockci.server import CONFIG
 
 
-class DockciUserDatastore(SQLAlchemyUserDatastore):
+class DockciUserDatastore(object):
     """
     Flask-security datastore to add ``UserEmail`` objects for users, and
     get users by all attached emails
@@ -48,11 +39,11 @@ class DockciUserDatastore(SQLAlchemyUserDatastore):
         return user
 
 
-class Role(DB.Model, RoleMixin):
+class Role(object):
     """ Role model for granting permissions """
-    id = DB.Column(DB.Integer(), primary_key=True)
-    name = DB.Column(DB.String(80), unique=True)
-    description = DB.Column(DB.String(255))
+    # id = DB.Column(DB.Integer(), primary_key=True)
+    # name = DB.Column(DB.String(80), unique=True)
+    # description = DB.Column(DB.String(255))
 
     def __str__(self):
         return '<{klass}: {name}>'.format(
@@ -61,7 +52,7 @@ class Role(DB.Model, RoleMixin):
         )
 
 
-class InternalRole(RoleMixin):
+class InternalRole(object):
     """ Virtual role that's not in the DB """
     singletons = {}
 
@@ -81,17 +72,17 @@ class InternalRole(RoleMixin):
 AGENT_ROLE = InternalRole('agent', 'Build agents')
 
 
-class OAuthToken(DB.Model):  # pylint:disable=no-init
+class OAuthToken(object):  # pylint:disable=no-init
     """ An OAuth token from a service, for a user """
-    id = DB.Column(DB.Integer(), primary_key=True)
-    service = DB.Column(DB.String(31))
-    key = DB.Column(DB.String(80))
-    secret = DB.Column(DB.String(80))
-    scope = DB.Column(DB.String(255))
-    user_id = DB.Column(DB.Integer, DB.ForeignKey('user.id'), index=True)
-    user = DB.relationship('User',
-                           foreign_keys="OAuthToken.user_id",
-                           backref=DB.backref('oauth_tokens', lazy='dynamic'))
+    # id = DB.Column(DB.Integer(), primary_key=True)
+    # service = DB.Column(DB.String(31))
+    # key = DB.Column(DB.String(80))
+    # secret = DB.Column(DB.String(80))
+    # scope = DB.Column(DB.String(255))
+    # user_id = DB.Column(DB.Integer, DB.ForeignKey('user.id'), index=True)
+    # user = DB.relationship('User',
+    #                        foreign_keys="OAuthToken.user_id",
+    #                        backref=DB.backref('oauth_tokens', lazy='dynamic'))
 
     def update_details_from(self, other):
         """
@@ -186,36 +177,36 @@ class OAuthToken(DB.Model):  # pylint:disable=no-init
         )
 
 
-class UserEmail(DB.Model):  # pylint:disable=no-init
+class UserEmail(object):  # pylint:disable=no-init
     """ Email addresses associated with users """
-    id = DB.Column(DB.Integer, primary_key=True)
-    email = DB.Column(DB.String(255), unique=True, index=True, nullable=False)
-    user_id = DB.Column(DB.Integer,
-                        DB.ForeignKey('user.id'),
-                        index=True,
-                        nullable=True)
-    user = DB.relationship('User',
-                           foreign_keys="UserEmail.user_id",
-                           backref=DB.backref('emails', lazy='dynamic'),
-                           post_update=True)
+    # id = DB.Column(DB.Integer, primary_key=True)
+    # email = DB.Column(DB.String(255), unique=True, index=True, nullable=False)
+    # user_id = DB.Column(DB.Integer,
+    #                     DB.ForeignKey('user.id'),
+    #                     index=True,
+    #                     nullable=True)
+    # user = DB.relationship('User',
+    #                        foreign_keys="UserEmail.user_id",
+    #                        backref=DB.backref('emails', lazy='dynamic'),
+    #                        post_update=True)
 
 
-class User(DB.Model, UserMixin):  # pylint:disable=no-init
+class User(object):  # pylint:disable=no-init
     """ User model for authentication """
-    id = DB.Column(DB.Integer, primary_key=True)
-    password = DB.Column(DB.String(255))
-    active = DB.Column(DB.Boolean())
-    confirmed_at = DB.Column(DB.DateTime())
-    email = DB.Column(DB.String(255),
-                      DB.ForeignKey('user_email.email'),
-                      index=True,
-                      unique=True,
-                      nullable=False)
-    email_obj = DB.relationship('UserEmail',
-                                foreign_keys="User.email")
-    roles = DB.relationship('Role',
-                            secondary=ROLES_USERS,
-                            backref=DB.backref('users', lazy='dynamic'))
+    # id = DB.Column(DB.Integer, primary_key=True)
+    # password = DB.Column(DB.String(255))
+    # active = DB.Column(DB.Boolean())
+    # confirmed_at = DB.Column(DB.DateTime())
+    # email = DB.Column(DB.String(255),
+    #                   DB.ForeignKey('user_email.email'),
+    #                   index=True,
+    #                   unique=True,
+    #                   nullable=False)
+    # email_obj = DB.relationship('UserEmail',
+    #                             foreign_keys="User.email")
+    # roles = DB.relationship('Role',
+    #                         secondary=ROLES_USERS,
+    #                         backref=DB.backref('users', lazy='dynamic'))
 
     def __str__(self):
         return '<{klass}: {email} ({active})>'.format(
@@ -263,7 +254,7 @@ def lookup_role(name):
         return Role.query.filter(Role.name.ilike(name)).first()
 
 
-class InternalUser(UserMixin):
+class InternalUser(object):
     """ Virtual user that's not in the DB """
     id = None
     active = True
@@ -273,20 +264,29 @@ class InternalUser(UserMixin):
         self.roles = [lookup_role(role) for role in roles or []]
 
 
-class AuthenticatedRegistry(DB.Model):  # pylint:disable=no-init
-    """ Registry that should be authenticated with """
-    id = DB.Column(DB.Integer, primary_key=True)
-    display_name = DB.Column(DB.String(255), unique=True, nullable=False)
-    base_name = DB.Column(DB.String(255),
-                          unique=True,
-                          index=True,
-                          nullable=False,
-                          )
-    username = DB.Column(DB.String(255))
-    password = DB.Column(DB.String(255))
-    email = DB.Column(DB.String(255))
+class AuthenticatedRegistrySchema(Schema):
+    base_name = fields.Str(default=None, allow_none=True, load_only=True)
+    display_name = fields.Str(default=None, allow_none=True)
+    username = fields.Str(default=None, allow_none=True)
+    password = fields.Str(default=None, allow_none=True)
+    email = fields.Str(default=None, allow_none=True)
+    insecure = fields.Bool(default=None, allow_none=True)
 
-    insecure = DB.Column(DB.Boolean, nullable=False, default=False)
+
+class AuthenticatedRegistry(RestModel):  # pylint:disable=no-init
+    """ Quick and dirty list of job stages for the time being """
+    SCHEMA = AuthenticatedRegistrySchema()
+
+    @classmethod
+    def url_for(_, base_name):
+        return '{dockci_url}/api/v1/registries/{base_name}'.format(
+            dockci_url=CONFIG.dockci_url,
+            base_name=base_name,
+        )
+
+    @property
+    def url(self):
+        return AuthenticatedRegistry.url_for(self.base_name)
 
     def __str__(self):
         return '<{klass}: {base_name} ({username})>'.format(
@@ -302,7 +302,7 @@ class AuthenticatedRegistry(DB.Model):  # pylint:disable=no-init
         return hash(tuple(
             (attr_name, getattr(self, attr_name))
             for attr_name in (
-                'id', 'display_name', 'base_name',
+                'display_name', 'base_name',
                 'username', 'password', 'email',
                 'insecure',
             )
