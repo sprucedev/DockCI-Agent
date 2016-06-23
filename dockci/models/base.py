@@ -51,7 +51,11 @@ class RestModel(object):
     @classmethod
     def load_url(cls, url, **kwargs):
         url = abs_detail_url(url)
-        response = requests.get(url)
+        response = requests.get(
+            url,
+            headers={'x-dockci-api-key': CONFIG.api_key},
+        )
+
         data = kwargs.copy()
         data.update(response.json())
         return cls.from_data(cls.SCHEMA.load(data).data, new=False)
