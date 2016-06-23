@@ -5,5 +5,4 @@
   - reenable changes stage
   - uncomment in git info
 - kill the job when rabbit conn timeout
-- external status stages
 - docker client configured from env

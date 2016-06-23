@@ -55,11 +55,7 @@ class Project(RestModel):  # pylint:disable=no-init
 
     def is_type(self, service):
         """ Check if the project is of a given service type """
-        return (
-            getattr(self, '%s_repo_id' % service) and
-            self.external_auth_token and
-            self.external_auth_token.service == service
-        )
+        return getattr(self, '%s_repo_id' % service) is not None
 
     @property
     def gitlab_api_repo_endpoint(self):
