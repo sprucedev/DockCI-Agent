@@ -58,6 +58,11 @@ class RestModel(object):
             headers={'x-dockci-api-key': CONFIG.api_key},
         )
 
+        if response.status_code == 404:
+            return None
+        if response.status_code != 200:
+            raise Exception(response.json()['message'])
+
         data = kwargs.copy()
         data.update(response.json())
         return cls.from_data(cls.SCHEMA.load(data).data, new=False)
