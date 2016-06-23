@@ -13,6 +13,7 @@ import requests
 
 from marshmallow import Schema, fields, post_load
 
+from .auth import AuthenticatedRegistry
 from .base import RepoFsMixin, RestModel
 from dockci.server import CONFIG
 from dockci.util import (ext_url_for,
@@ -35,7 +36,9 @@ class ProjectSchema(Schema):
     github_repo_hook = fields.Str(default=None, allow_none=True)
     gitlab_repo_id = fields.Str(default=None, allow_none=True)
     registry_detail = fields.Str(default=None, allow_none=True)
-    target_registry = fields.Str(default=None, allow_none=True)
+    target_registry_detail = fields.Str(default=None,
+                                        allow_none=True,
+                                        load_from='target_registry')
 
 
 class Project(RestModel, RepoFsMixin):  # pylint:disable=no-init
@@ -131,3 +134,21 @@ class Project(RestModel, RepoFsMixin):  # pylint:disable=no-init
             return Job.load_url(response.json()['items'][0]['detail'])
         except IndexError:
             return None
+
+    _target_registry = None
+
+    @property
+    def target_registry(self):
+        if self._target_registry is None:
+            try:
+                self._target_registry = AuthenticatedRegistry.load_url(
+                    self.target_registry_detail
+                )
+            except AttributeError:
+                return None
+
+        return self._target_registry
+
+    @target_registry.setter
+    def target_registry(self, value):
+        self._target_registry = value
