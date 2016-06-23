@@ -786,11 +786,6 @@ class Job(RestModel):
         else:
             return messages[0]
 
-    @property
-    def external_auth_token(self):
-        """ Pass the auth token getter off to the project """
-        return self.project.external_auth_token
-
     @classmethod
     def delete_all_in_project(cls, project):
         """ Delete all jobs and data for the given project """
@@ -880,7 +875,6 @@ class Job(RestModel):
             for stage in [
                 WorkdirStage(self, workdir),
                 GitInfoStage(self, workdir),
-                #ExternalStatusStage(self, 'start'),
                 #GitChangesStage(self, workdir),
                 GitMtimeStage(self, workdir),
                 TagVersionStage(self, workdir),
@@ -891,7 +885,6 @@ class Job(RestModel):
                 TestStage(self),
                 PushStage(self),
                 FetchStage(self),
-                #ExternalStatusStage(self, 'complete'),
                 CleanupStage(self),
             ]
         }
@@ -951,9 +944,6 @@ class Job(RestModel):
                 )
             ))
 
-            # if self.project.github_repo_id:  # TODO GitLab
-            #     self._stage_objects['external_status_start'].run(0)
-
             if not all(prepare):
                 self.result = 'broken'
                 self.save()
@@ -988,7 +978,6 @@ class Job(RestModel):
 
         finally:
             try:
-                # self._stage_objects['external_status_complete'].run(0)
                 self._stage_objects['cleanup'].run(None)
 
             except Exception:  # pylint:disable=broad-except
@@ -996,105 +985,6 @@ class Job(RestModel):
 
             self.complete_ts = datetime.now()
             self.save()
-
-    def state_data_for(self, service, state=None, state_msg=None):
-        """
-        Get the mapped state, and associated message for a service.
-
-        To look up state label, first the dict ``STATE_MAP`` is queried for the
-        service name. If no value is found, state is kept as is. If the service
-        key is found, looks up the state value. If no value is found, the
-        ``None`` key is looked up.
-
-        The state message is simply a switch on the original state.
-        """
-        state = state or self.state
-        service_state = state
-
-        try:
-            service_state_map = STATE_MAP[service]
-
-        except KeyError:
-            pass
-
-        else:
-            try:
-                service_state = service_state_map[state]
-
-            except KeyError:
-                service_state = service_state_map[None]
-                state_msg = "is in an unknown state: '%s'" % state
-
-        if state_msg is None:
-            if state == 'running':
-                state_msg = "is in progress"
-            elif state == 'success':
-                state_msg = "completed successfully"
-            elif state == 'fail':
-                state_msg = "completed with failing tests"
-            elif state == 'broken':
-                state_msg = "failed to complete due to an error"
-
-        if state_msg is not None:
-            state_msg = "The DockCI job %s" % state_msg
-
-        return service_state, state_msg
-
-    def send_gitlab_status(self, state=None, state_msg=None, context='push'):
-        """ Send the job state to GitLab (see ``send_external_status`` """
-        return self.send_external_status(
-            'gitlab',
-            self.gitlab_api_status_endpoint,
-            state=state,
-            state_msg=state_msg,
-            context=context,
-        )
-
-    def send_github_status(self, state=None, state_msg=None, context='push'):
-        """ Send the job state to GitHub (see ``send_external_status`` """
-        return self.send_external_status(
-            'github',
-            self.github_api_status_endpoint,
-            state=state,
-            state_msg=state_msg,
-            context=context,
-        )
-
-    def send_external_status(self,
-                             service,
-                             api_endpoint,
-                             state=None,
-                             state_msg=None,
-                             context='push',
-                             ):
-        """
-        Send a state to the service for the commit represented by this job. If
-        state not set, is defaulted to something that makes sense, given the
-        data in this model
-        """
-        state, state_msg = self.state_data_for(service, state, state_msg)
-
-        if state_msg is not None:
-            extra_dict = dict(description=state_msg)
-
-        token_data = self.project.external_auth_token
-        if token_data.service != service:
-            raise InvalidServiceTypeError(
-                "Project has a '%s' OAuth token, rather than '%s'" % (
-                    token_data.service,
-                    service,
-                ),
-            )
-
-        return OAUTH_APPS[service].post(
-            api_endpoint,
-            dict(state=state,
-                 target_url=self.url_ext,
-                 context='continuous-integration/dockci/%s' % context,
-                 **extra_dict),
-            format='json',
-            token=(token_data.key, token_data.secret),
-        )
 
     def _error_stage(self, stage_slug):
         """
