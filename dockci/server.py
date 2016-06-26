@@ -53,14 +53,6 @@ def init_config():
     logger = CONFIG.logger.getChild('init')
     logger.info("Loading app config")
 
-    # APP.config['MAIL_SERVER'] = CONFIG.mail_server
-    # APP.config['MAIL_PORT'] = CONFIG.mail_port
-    # APP.config['MAIL_USE_TLS'] = CONFIG.mail_use_tls
-    # APP.config['MAIL_USE_SSL'] = CONFIG.mail_use_ssl
-    # APP.config['MAIL_USERNAME'] = CONFIG.mail_username
-    # APP.config['MAIL_PASSWORD'] = CONFIG.mail_password
-    # APP.config['MAIL_DEFAULT_SENDER'] = CONFIG.mail_default_sender
-    #
     CONFIG.rabbitmq_user = os.environ.get(
         'RABBITMQ_ENV_BACKEND_USER', 'guest')
     CONFIG.rabbitmq_password = os.environ.get(
@@ -76,8 +68,6 @@ def init_config():
         'REDIS_PORT_6379_PORT', 6379))
 
     CONFIG.redis_len_expire = 60 * 60  # 1hr
-
-    # app_init_workers()
 
 
 def get_redis_pool():
@@ -156,17 +146,3 @@ def app_init_rollbar():
     )
 
     flask.got_request_exception.connect(wrapped_report_exception, APP)
-
-
-def app_init_workers():
-    """
-    Initialize the worker job queue
-    """
-    from .workers import start_workers
-    APP.worker_queue = multiprocessing.Queue()
-
-    try:
-        start_workers()
-    except Exception:
-        rollbar.report_exc_info()
-        raise

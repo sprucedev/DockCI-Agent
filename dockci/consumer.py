@@ -327,32 +327,3 @@ class Consumer(object):  # pylint:disable=too-many-public-methods
         """This method closes the connection to RabbitMQ."""
         self._logger.info('Closing connection')
         self._connection.close()
-
-#
-# @run_wrapper('consumer')
-# def run(logger, add_stop_handler):
-#     """ Run the log consumer """
-#     rabbit_user = os.environ.get('RABBITMQ_ENV_BACKEND_USER', 'guest')
-#     rabbit_pass = os.environ.get('RABBITMQ_ENV_BACKEND_PASSWORD', 'guest')
-#     rabbit_host = os.environ.get('RABBITMQ_PORT_5672_TCP_ADDR', '127.0.0.1')
-#     rabbit_port = os.environ.get('RABBITMQ_PORT_5672_TCP_PORT', 5672)
-#     consumer = Consumer(
-#         pika.ConnectionParameters(
-#             host=rabbit_host,
-#             port=int(rabbit_port),
-#             credentials=pika.credentials.PlainCredentials(
-#                 rabbit_user, rabbit_pass,
-#             ),
-#         ),
-#         logger,
-#     )
-#
-#     add_stop_handler(consumer.stop)
-#
-#     for _ in range(30):
-#         try:
-#             consumer.run()
-#         except pika.exceptions.AMQPConnectionError:
-#             logger.exception('Connection issue')
-#             import time
-#             time.sleep(1)
