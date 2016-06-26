@@ -1,9 +1,7 @@
 """ Setup and run the DockCI agent consumer """
 import json
-import os
 
 import pika
-import py
 
 from dockci.models.job import Job
 

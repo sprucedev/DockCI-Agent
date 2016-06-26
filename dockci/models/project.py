@@ -2,24 +2,17 @@
 DockCI - CI, but with that all important Docker twist
 """
 
-import logging
 import re
 
-from urllib.parse import quote_plus, urlparse, urlunparse
-from uuid import uuid4
+from urllib.parse import quote_plus
 
-import py.error  # pylint:disable=import-error
 import requests
 
-from marshmallow import Schema, fields, post_load
+from marshmallow import Schema, fields
 
 from .auth import AuthenticatedRegistry
 from .base import RestModel
 from dockci.server import CONFIG
-from dockci.util import (ext_url_for,
-                         is_git_ancestor,
-                         is_git_hash,
-                         )
 
 
 DOCKER_REPO_RE = re.compile(r'[a-z0-9-_.]+')

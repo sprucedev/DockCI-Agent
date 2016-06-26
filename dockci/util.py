@@ -1,10 +1,6 @@
 """
 Generic DockCI utils
 """
-import hashlib
-import hmac
-import logging
-import pickle
 import re
 import shlex
 import socket
@@ -13,21 +9,15 @@ import struct
 import subprocess
 import sys
 import json
-import datetime
 
-from base64 import b64encode
 from contextlib import contextmanager
-from functools import wraps
 from ipaddress import ip_address
-from urllib.parse import urlencode, urlparse, urlunparse
+from urllib.parse import urlparse, urlunparse
 
 import docker.errors
 import py.error  # pylint:disable=import-error
-import redis
-import yaml_model
 
 from py.path import local  # pylint:disable=import-error
-from yaml_model import ValidationError
 
 
 def default_gateway():

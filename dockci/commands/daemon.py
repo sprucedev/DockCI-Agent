@@ -1,6 +1,5 @@
 """ Click commands for the agent daemon """
 import click
-import pika
 
 from dockci.consumer import Consumer
 from dockci.server import cli, CONFIG, pika_conn_params

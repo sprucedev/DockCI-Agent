@@ -5,7 +5,7 @@ Main job stages that constitute a job
 import json
 
 from dockci.models.base import ServiceBase
-from dockci.models.job_meta.stages import JobStageBase, DockerStage
+from dockci.models.job_meta.stages import DockerStage
 from dockci.util import built_docker_image_id
 
 

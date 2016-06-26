@@ -2,7 +2,6 @@
 import os
 
 import click
-import docker
 
 from dockci.server import cli
 from dockci.util import bin_root, project_root

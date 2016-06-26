@@ -6,12 +6,10 @@ DockCI - CI, but with that all important Docker twist
 # pylint:disable=too-many-lines
 
 import logging
-import random
 import sys
 import tempfile
 
 from collections import OrderedDict
-from datetime import datetime
 from enum import Enum
 from itertools import chain
 
@@ -19,11 +17,10 @@ import docker
 import py.path  # pylint:disable=import-error
 import semver
 
-from docker.utils import kwargs_from_env
-from marshmallow import Schema, fields, post_load
+from marshmallow import Schema, fields
 
 from .base import DateTimeOrNow, RestModel, ServiceBase
-from dockci.exceptions import AlreadyRunError, InvalidServiceTypeError
+from dockci.exceptions import AlreadyRunError
 from dockci.models.project import Project
 from dockci.models.job_meta.config import JobConfig
 from dockci.models.job_meta.stages import JobStage
@@ -34,8 +31,7 @@ from dockci.models.job_meta.stages_post import (PushStage,
                                                 FetchStage,
                                                 CleanupStage,
                                                 )
-from dockci.models.job_meta.stages_prepare import (GitChangesStage,
-                                                   GitInfoStage,
+from dockci.models.job_meta.stages_prepare import (GitInfoStage,
                                                    GitMtimeStage,
                                                    TagVersionStage,
                                                    WorkdirStage,
@@ -45,11 +41,8 @@ from dockci.models.job_meta.stages_prepare_docker import (DockerLoginStage,
                                                           PushPrepStage,
                                                           UtilStage,
                                                           )
-from dockci.server import CONFIG
 from dockci.util import (add_to_url_path,
                          bytes_human_readable,
-                         client_kwargs_from_config,
-                         ext_url_for,
                          )
 
 

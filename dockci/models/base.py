@@ -89,8 +89,7 @@ class RestModel(object):
         url = abs_detail_url(url)
         data = self.SCHEMA.dump(self).data
 
-        import logging
-        logging.warning('saving %s with %s', self, data)
+        logging.warning('Saving %s with %s', self, data)
 
         method = requests.put if self.is_new else requests.patch
 
