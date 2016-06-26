@@ -28,7 +28,6 @@ from dockci.models.project import Project
 from dockci.models.job_meta.config import JobConfig
 from dockci.models.job_meta.stages import JobStage
 from dockci.models.job_meta.stages_main import (BuildStage,
-                                                ExternalStatusStage,
                                                 TestStage,
                                                 )
 from dockci.models.job_meta.stages_post import (PushStage,
