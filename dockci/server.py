@@ -12,10 +12,6 @@ import click
 import pika
 import redis
 import rollbar
-#import rollbar.contrib.flask
-
-#from dockci.models.config import Config
-#from dockci.util import project_root, setup_templates, tokengetter_for
 
 
 class Config(object):
@@ -29,6 +25,7 @@ class Config(object):
 
     def __getattr__(self, name):
         return self.config_dict[name]
+
     def __setattr__(self, name, value):
         self.config_dict[name] = value
 
@@ -51,7 +48,7 @@ def cli(ctx, debug):
 
 def init_config():
     """ Pre-run app setup """
-    #app_init_rollbar()
+    # app_init_rollbar()
 
     logger = CONFIG.logger.getChild('init')
     logger.info("Loading app config")

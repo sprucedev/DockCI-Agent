@@ -23,6 +23,7 @@ def unittest():
     """ Run unit tests """
     return unittest_()
 
+
 def unittest_():
     """ Run unit tests """
     import pytest
@@ -37,6 +38,7 @@ def doctest():
     """ Run doc tests """
     return doctest_()
 
+
 def doctest_():
     """ Run doc tests """
     import pytest
@@ -50,6 +52,7 @@ def doctest_():
 def pep8():
     """ Style tests with PEP8 """
     return pep8_()
+
 
 def pep8_():
     """ Style tests with PEP8 """
@@ -68,6 +71,7 @@ def pep8_():
 def pylint():
     """ Style tests with pylint """
     return pylint_()
+
 
 def pylint_():
     """ Style tests with pylint """
@@ -99,6 +103,7 @@ def pylint_forked():
 def styletest():
     """ Run style tests """
     return styletest_()
+
 
 def styletest_():
     """ Run style tests """

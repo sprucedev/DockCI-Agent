@@ -30,7 +30,6 @@ class ProjectSchema(Schema):
     name = fields.Str(default=None, allow_none=True)
     utility = fields.Bool(default=None, allow_none=True)
     status = fields.Str(default=None, allow_none=True)
-    #display_repo = fields.Str(default=None, allow_none=True)
     branch_pattern = fields.Str(default=None, allow_none=True)
     github_repo_id = fields.Str(default=None, allow_none=True)
     github_repo_hook = fields.Str(default=None, allow_none=True)

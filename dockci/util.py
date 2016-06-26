@@ -22,15 +22,10 @@ from ipaddress import ip_address
 from urllib.parse import urlencode, urlparse, urlunparse
 
 import docker.errors
-#import jwt
 import py.error  # pylint:disable=import-error
 import redis
 import yaml_model
 
-# from flask import current_app, flash, request
-# from flask_principal import Permission, RoleNeed
-# from flask_restful import abort as rest_abort
-# from flask_security import current_user, login_required
 from py.path import local  # pylint:disable=import-error
 from yaml_model import ValidationError
 

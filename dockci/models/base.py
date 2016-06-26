@@ -1,4 +1,5 @@
 """ Base model classes, mixins """
+import logging
 import re
 
 from collections import defaultdict
@@ -16,6 +17,7 @@ class DateTimeOrNow(fields.DateTime):
         if value is 'now':
             return 'now'
         return super(DateTimeOrNow, self)._serialize(value, attr, obj)
+
 
 def abs_detail_url(url):
     """ Absolute URL from possibly partial URL, assuming DockCI as root
@@ -37,6 +39,7 @@ def abs_detail_url(url):
         url=url,
     )
 
+
 class RestModel(object):
     _new = True
 
@@ -48,11 +51,11 @@ class RestModel(object):
         return cls(_new=new, **data)
 
     def set_all(self, **kwargs):
+        logging.debug('Setting attributes %s', kwargs)
         for key, val in kwargs.items():
             if key == 'state':  # XXX figure out how to deal with this
                 continue
-            import logging;
-            logging.warning('setting %s', key)
+
             setattr(self, key, val)
 
     @classmethod
@@ -62,8 +65,9 @@ class RestModel(object):
     @classmethod
     def load_url(cls, url, **kwargs):
         url = abs_detail_url(url)
-        import logging;
-        logging.warning('loading %s', url)
+
+        logging.debug('Loading %s', url)
+
         response = requests.get(
             url,
             headers={'x-dockci-api-key': CONFIG.api_key},

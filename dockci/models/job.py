@@ -135,10 +135,8 @@ class JobStageTmp(RestModel):  # pylint:disable=no-init
 
     @classmethod
     def url_for(_, project_slug, job_slug, stage_slug):
-        return '{dockci_url}/api/v1/projects/{project_slug}/jobs/{job_slug}/stages/{stage_slug}'.format(
-            dockci_url=CONFIG.dockci_url,
-            project_slug=project_slug,
-            job_slug=job_slug,
+        return '{job_url}/stages/{stage_slug}'.format(
+            job_url=Job.url_for(project_slug, job_slug),
             stage_slug=stage_slug,
         )
 
@@ -181,21 +179,20 @@ class JobSchema(Schema):
     command_repo = fields.Str(default=None, allow_none=True, load_only=True)
     image_id = fields.Str(default=None, allow_none=True)
     container_id = fields.Str(default=None, allow_none=True)
-    #docker_client_host = fields.Str(default=None, allow_none=True)
     exit_code = fields.Int(default=None, allow_none=True)
     git_author_name = fields.Str(default=None, allow_none=True)
     git_author_email = fields.Str(default=None, allow_none=True)
     git_committer_name = fields.Str(default=None, allow_none=True)
     git_committer_email = fields.Str(default=None, allow_none=True)
 
+
 class Job(RestModel):
     SCHEMA = JobSchema()
 
     @classmethod
     def url_for(_, project_slug, job_slug):
-        return '{dockci_url}/api/v1/projects/{project_slug}/jobs/{job_slug}'.format(
-            dockci_url=CONFIG.dockci_url,
-            project_slug=project_slug,
+        return '{project_url}/jobs/{job_slug}'.format(
+            project_url=Project.url_for(project_slug),
             job_slug=job_slug,
         )
 
@@ -874,7 +871,7 @@ class Job(RestModel):
             for stage in [
                 WorkdirStage(self, workdir),
                 GitInfoStage(self, workdir),
-                #GitChangesStage(self, workdir),
+                # GitChangesStage(self, workdir),
                 GitMtimeStage(self, workdir),
                 TagVersionStage(self, workdir),
                 PushPrepStage(self),
