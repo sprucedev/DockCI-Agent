@@ -41,16 +41,19 @@ class RestModel(object):
     _new = True
 
     def __init__(self, **kwargs):
+        self.set_all(**kwargs)
+
+    @classmethod
+    def from_data(cls, data, new=True):
+        return cls(_new=new, **data)
+
+    def set_all(self, **kwargs):
         for key, val in kwargs.items():
             if key == 'state':  # XXX figure out how to deal with this
                 continue
             import logging;
             logging.warning('setting %s', key)
             setattr(self, key, val)
-
-    @classmethod
-    def from_data(cls, data, new=True):
-        return cls(_new=new, **data)
 
     @classmethod
     def load(cls, *args, **kwargs):
@@ -100,6 +103,8 @@ class RestModel(object):
                 response.json()
             )
         )
+
+        self.set_all(**self.SCHEMA.load(response.json()).data)
 
     @property
     def is_new(self):
