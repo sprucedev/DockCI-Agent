@@ -5,9 +5,17 @@ from collections import defaultdict
 
 import requests
 
+from marshmallow import fields
+
 # from dockci.models.auth import AuthenticatedRegistry
 from dockci.server import CONFIG
 
+
+class DateTimeOrNow(fields.DateTime):
+    def _serialize(self, value, attr, obj):
+        if value is 'now':
+            return 'now'
+        return super(DateTimeOrNow, self)._serialize(value, attr, obj)
 
 def abs_detail_url(url):
     """ Absolute URL from possibly partial URL, assuming DockCI as root
