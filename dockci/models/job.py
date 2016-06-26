@@ -22,8 +22,8 @@ import semver
 from docker.utils import kwargs_from_env
 from marshmallow import Schema, fields, post_load
 
+from .base import DateTimeOrNow, RestModel, ServiceBase
 from dockci.exceptions import AlreadyRunError, InvalidServiceTypeError
-from dockci.models.base import RestModel, ServiceBase
 from dockci.models.project import Project
 from dockci.models.job_meta.config import JobConfig
 from dockci.models.job_meta.stages import JobStage
@@ -171,8 +171,8 @@ class JobSchema(Schema):
     result = fields.Str(default=None, allow_none=True)
     commit = fields.Str(default=None, allow_none=True)
     create_ts = fields.DateTime(default=None, allow_none=True, load_only=True)
-    start_ts = fields.DateTime(default=None, allow_none=True)
-    complete_ts = fields.DateTime(default=None, allow_none=True)
+    start_ts = DateTimeOrNow(default=None, allow_none=True)
+    complete_ts = DateTimeOrNow(default=None, allow_none=True)
     tag = fields.Str(default=None, allow_none=True)
     git_branch = fields.Str(default=None, allow_none=True)
     project_detail = fields.Str(default=None, allow_none=True, load_only=True)
@@ -866,7 +866,7 @@ class Job(RestModel):
             with tempfile.TemporaryDirectory() as workdir:
                 return self._run_now(py.path.local(workdir))
 
-        self.start_ts = datetime.now()
+        self.start_ts = 'now'
         self.save()
 
         self._stage_objects = {
@@ -982,7 +982,7 @@ class Job(RestModel):
             except Exception:  # pylint:disable=broad-except
                 self._error_stage('post_error')
 
-            self.complete_ts = datetime.now()
+            self.complete_ts = 'now'
             self.save()
 
     def _error_stage(self, stage_slug):
