@@ -40,10 +40,7 @@ from .job_meta.stages_prepare_docker import (DockerLoginStage,
                                              PushPrepStage,
                                              UtilStage,
                                              )
-from dockci.exceptions import AlreadyRunError
-from dockci.util import (add_to_url_path,
-                         bytes_human_readable,
-                         )
+from dockci.util import add_to_url_path
 
 
 STATE_MAP = {
@@ -118,6 +115,7 @@ PUSH_REASON_MESSAGES = {
 
 
 class JobStageTmpSchema(Schema):
+    """ Schema for loading and saving ``JobStageTmp`` models """
     success = fields.Bool(default=None, allow_none=True)
     job_detail = fields.Str(default=None, allow_none=True, load_only=True)
 
@@ -131,7 +129,26 @@ class JobStageTmp(RestModel):  # pylint:disable=no-init
     job_detail = None
 
     @classmethod
-    def url_for(_, project_slug, job_slug, stage_slug):
+    def url_for(cls, project_slug, job_slug, stage_slug):
+        """ Generate the absolute URL to load a stage from
+
+        :param project_slug: Slug for the project to generate for
+        :type project_slug: str
+        :param job_slug: Slug for the job to generate for
+        :type job_slug: str
+        :param stage_slug: Slug for the stage to generate for
+        :type stage_slug: str
+
+        :return str: Absolute URL for job with slug
+
+        Examples:
+
+          >>> from dockci.server import CONFIG
+
+          >>> CONFIG.dockci_url = 'http://dockcitest'
+          >>> JobStageTmp.url_for('testproj', 'testjob', 'teststage')
+          'http://dockcitest/.../testproj/jobs/testjob/stages/teststage'
+        """
         return '{job_url}/stages/{stage_slug}'.format(
             job_url=Job.url_for(project_slug, job_slug),
             stage_slug=stage_slug,
@@ -139,6 +156,7 @@ class JobStageTmp(RestModel):  # pylint:disable=no-init
 
     @property
     def url(self):
+        """ URL for this stage """
         return JobStageTmp.url_for(
             self.job.project.slug, self.job.slug, self.slug,
         )
@@ -147,20 +165,36 @@ class JobStageTmp(RestModel):  # pylint:disable=no-init
 
     @property
     def job(self):
-        if self._job is None:
-            try:
-                self._job = Job.load_url(self.job_detail)
-            except AttributeError:
-                return None
+        """ Job associated with this stage
+
+        :return Job: Loaded from detail URL
+        :return None: No job associated
+
+        :raise AssertionError: Response code unexpected
+        """
+
+        if (
+            self._job is None and
+            self.job_detail is not None
+        ):
+            self._job = Job.load_url(
+                self.job_detail
+            )
 
         return self._job
 
     @job.setter
     def job(self, value):
+        """ Set the ``job`` cache
+
+        :param value: Job associated with this stage
+        :type value: Job
+        """
         self._job = value
 
 
 class JobSchema(Schema):
+    """ Schema for loading and saving ``Job`` models """
     slug = fields.Str(default=None, allow_none=True, load_only=True)
     state = fields.Str(default=None, allow_none=True, load_only=True)
     result = fields.Str(default=None, allow_none=True)
@@ -183,7 +217,8 @@ class JobSchema(Schema):
     git_committer_email = fields.Str(default=None, allow_none=True)
 
 
-class Job(RestModel):
+class Job(RestModel):  # noqa,pylint:disable=too-many-public-methods,too-many-instance-attributes
+    """ An individual project job, and result """
     SCHEMA = JobSchema()
 
     slug = None
@@ -207,7 +242,24 @@ class Job(RestModel):
     git_committer_email = None
 
     @classmethod
-    def url_for(_, project_slug, job_slug):
+    def url_for(cls, project_slug, job_slug):
+        """ Generate the absolute URL to load a job from
+
+        :param project_slug: Slug for the project to generate for
+        :type project_slug: str
+        :param job_slug: Slug for the job to generate for
+        :type job_slug: str
+
+        :return str: Absolute URL for job with slug
+
+        Examples:
+
+          >>> from dockci.server import CONFIG
+
+          >>> CONFIG.dockci_url = 'http://dockcitest'
+          >>> Job.url_for('testproj', 'testjob')
+          'http://dockcitest/api/v1/projects/testproj/jobs/testjob'
+        """
         return '{project_url}/jobs/{job_slug}'.format(
             project_url=Project.url_for(project_slug),
             job_slug=job_slug,
@@ -217,39 +269,6 @@ class Job(RestModel):
     def url(self):
         """ URL for this job """
         return Job.url_for(self.project_slug, self.slug)
-
-    _project = None
-
-    @property
-    def project(self):
-        """ Project associated with this job
-
-        :return Project: Loaded from detail URL
-        :return None: No project associated
-
-        :raise AssertionError: Response code unexpected
-        """
-
-        if (
-            self._project is None and
-            self.project_detail is not None
-        ):
-                self._project = Project.load_url(
-                    self.project_detail
-                )
-
-        return self._project
-
-    @project.setter
-    def project(self, value):
-        """ Set the ``project`` cache
-
-        :param value: Project associated with this job
-        :type value: Project
-        """
-        self._project = value
-
-    _job_config = None
 
     def __init__(self, *args, **kwargs):
         super(Job, self).__init__(*args, **kwargs)
@@ -268,6 +287,39 @@ class Job(RestModel):
             project_slug=self.project.slug,
             job_slug=slug,
         )
+
+    _project = None
+
+    @property
+    def project(self):
+        """ Project associated with this job
+
+        :return Project: Loaded from detail URL
+        :return None: No project associated
+
+        :raise AssertionError: Response code unexpected
+        """
+
+        if (
+            self._project is None and
+            self.project_detail is not None
+        ):
+            self._project = Project.load_url(
+                self.project_detail
+            )
+
+        return self._project
+
+    @project.setter
+    def project(self, value):
+        """ Set the ``project`` cache
+
+        :param value: Project associated with this job
+        :type value: Project
+        """
+        self._project = value
+
+    _job_config = None
 
     @property
     def job_config(self):
@@ -363,16 +415,6 @@ class Job(RestModel):
             '/statuses/%s' % self.commit,
         )
 
-    @property
-    def state(self):
-        """
-        Current state that the job is in
-        """
-        if self.result is not None:
-            return self.result
-
-        return 'running'
-
     def changed_result(self, workdir=None):
         """
         Check if this job changed the result from it's ancestor. None if
@@ -431,28 +473,6 @@ class Job(RestModel):
             # self._docker_client = docker.Client(**docker_client_args)
 
         return self._docker_client
-
-    @property
-    def job_output_details(self):
-        """
-        Details for job output artifacts
-        """
-        # pylint:disable=no-member
-        output_files = (
-            (name, self.job_output_path().join('%s.tar' % name))
-            for name in self.job_config.job_output.keys()
-        )
-        return {
-            name: {'size': bytes_human_readable(path.size()),
-                   'link': url_for('job_output_view',
-                                   project_slug=self.project.slug,
-                                   job_slug=self.slug,
-                                   filename='%s.tar' % name,
-                                   ),
-                   }
-            for name, path in output_files
-            if path.check(file=True)
-        }
 
     @property
     def tag_semver(self):
@@ -868,58 +888,6 @@ class Job(RestModel):
     def job_output_path(self):
         """ Directory for any job output data """
         return self.data_dir_path_for_project(self.project).join(self.slug)
-
-    @classmethod
-    def filtered_query(cls,
-                       query=None,
-                       passed=None,
-                       versioned=None,
-                       tag=None,
-                       completed=None,
-                       branch=None,
-                       ):
-        """
-        Generator, filtering jobs matching the criteria
-        """
-        if query is None:
-            query = cls.query.order_by(sqlalchemy.desc(cls.create_ts))
-
-        def filter_on_value(query, equal, field, value):
-            """
-            Filter the query for field on a given value being equal, or
-            non-equal
-            """
-            if equal:
-                return query.filter(field == value)
-            else:
-                return query.filter(field != value)
-
-        if passed is not None:
-            query = filter_on_value(query, passed, cls.result, 'success')
-
-        if versioned is not None:
-            query = filter_on_value(query, not versioned, cls.tag, None)
-
-        if tag is not None:
-            query = query.filter(cls.tag == tag)
-
-        if completed is not None:
-            query = query.filter(cls.result.in_(('success', 'fail', 'broken')))
-
-        if branch is not None:
-            query = query.filter_by(git_branch=branch)
-
-        return query
-
-    def queue(self):
-        """
-        Add the job to the queue
-        """
-        if self.start_ts:
-            raise AlreadyRunError(self)
-
-        from dockci.server import APP
-        APP.worker_queue.put(self.id)
 
     def _run_now(self, workdir=None):
         """
