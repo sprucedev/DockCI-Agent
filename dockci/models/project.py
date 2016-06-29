@@ -243,9 +243,9 @@ class Project(RestModel):  # pylint:disable=no-init
             self._target_registry is None and
             self.target_registry_detail is not None
         ):
-                self._target_registry = AuthenticatedRegistry.load_url(
-                    self.target_registry_detail
-                )
+            self._target_registry = AuthenticatedRegistry.load_url(
+                self.target_registry_detail
+            )
 
         return self._target_registry
 
