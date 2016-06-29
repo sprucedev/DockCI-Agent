@@ -238,7 +238,7 @@ class Job(RestModel):
                     self.project_detail
                 )
 
-        return self._target_registry
+        return self._project
 
     @project.setter
     def project(self, value):
