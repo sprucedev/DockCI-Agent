@@ -39,6 +39,17 @@ class Project(RestModel):  # pylint:disable=no-init
     """
     SCHEMA = ProjectSchema()
 
+    slug = None
+    name = None
+    utility = None
+    status = None
+    branch_pattern = None
+    github_repo_id = None
+    github_hook_id = None
+    gitlab_repo_id = None
+    registry_detail = None
+    target_registry_detail = None
+
     def __str__(self):
         return '<{klass}: {project_slug}>'.format(
             klass=self.__class__.__name__,
