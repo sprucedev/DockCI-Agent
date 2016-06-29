@@ -223,16 +223,31 @@ class Job(RestModel):
 
     @property
     def project(self):
-        if self._project is None:
-            try:
-                self._project = Project.load_url(self.project_detail)
-            except AttributeError:
-                return None
+        """ Project associated with this job
 
-        return self._project
+        :return Project: Loaded from detail URL
+        :return None: No project associated
+
+        :raise AssertionError: Response code unexpected
+        """
+
+        if (
+            self._project is None and
+            self.project_detail is not None
+        ):
+                self._project = Project.load_url(
+                    self.project_detail
+                )
+
+        return self._target_registry
 
     @project.setter
     def project(self, value):
+        """ Set the ``project`` cache
+
+        :param value: Project associated with this job
+        :type value: Project
+        """
         self._project = value
 
     _job_config = None
