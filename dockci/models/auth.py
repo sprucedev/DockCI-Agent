@@ -8,6 +8,7 @@ from dockci.server import CONFIG
 
 
 class AuthenticatedRegistrySchema(Schema):
+    """ Schema for loading and saving ``AuthenticatedRegistry`` models """
     base_name = fields.Str(default=None, allow_none=True, load_only=True)
     display_name = fields.Str(default=None, allow_none=True)
     username = fields.Str(default=None, allow_none=True)
@@ -16,7 +17,7 @@ class AuthenticatedRegistrySchema(Schema):
     insecure = fields.Bool(default=None, allow_none=True)
 
 
-class AuthenticatedRegistry(RestModel):  # pylint:disable=no-init
+class AuthenticatedRegistry(RestModel):
     """ Quick and dirty list of job stages for the time being """
     SCHEMA = AuthenticatedRegistrySchema()
 
@@ -28,7 +29,20 @@ class AuthenticatedRegistry(RestModel):  # pylint:disable=no-init
     insecure = None
 
     @classmethod
-    def url_for(_, base_name):
+    def url_for(cls, base_name):  # pylint:disable=arguments-differ
+        """ Generate the absolute URL to load a registry from
+
+        :param base_name: Base name for the registry
+        :type base_name: str
+
+        :return str: Absolute URL for registry with base name
+
+        Examples:
+
+          >>> CONFIG.dockci_url = 'http://dockcitest'
+          >>> AuthenticatedRegistry.url_for('docker.io')
+          'http://dockcitest/api/v1/registries/docker.io'
+        """
         return '{dockci_url}/api/v1/registries/{base_name}'.format(
             dockci_url=CONFIG.dockci_url,
             base_name=base_name,
@@ -36,6 +50,7 @@ class AuthenticatedRegistry(RestModel):  # pylint:disable=no-init
 
     @property
     def url(self):
+        """ URL for this registry """
         return AuthenticatedRegistry.url_for(self.base_name)
 
     def __str__(self):
