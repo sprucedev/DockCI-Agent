@@ -12,6 +12,8 @@ import pika
 import redis
 import rollbar
 
+from .util import project_root
+
 
 class Config(object):
     @property
@@ -41,6 +43,7 @@ def cli(ctx, debug):
     CONFIG.debug = debug
 
     init_config()
+    init_rollbar()
 
     mimetypes.add_type('application/x-yaml', 'yaml')
 
@@ -128,7 +131,7 @@ def wrapped_report_exception(app, exception):
     return rollbar.contrib.flask.report_exception(app, exception)
 
 
-def app_init_rollbar():
+def init_rollbar():
     """ Initialize Rollbar for error/exception reporting """
     try:
         api_key = os.environ['ROLLBAR_API_KEY']
@@ -143,5 +146,3 @@ def app_init_rollbar():
         root=project_root().strpath,
         allow_logging_basic_config=False,
     )
-
-    flask.got_request_exception.connect(wrapped_report_exception, APP)
