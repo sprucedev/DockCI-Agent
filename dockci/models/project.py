@@ -239,13 +239,13 @@ class Project(RestModel):  # pylint:disable=no-init
         :raise AssertionError: Response code unexpected
         """
 
-        if self._target_registry is None:
-            try:
+        if (
+            self._target_registry is None and
+            self.target_registry_detail is not None
+        ):
                 self._target_registry = AuthenticatedRegistry.load_url(
                     self.target_registry_detail
                 )
-            except AttributeError:
-                return None
 
         return self._target_registry
 
