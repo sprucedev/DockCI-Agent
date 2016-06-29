@@ -191,8 +191,6 @@ class PushPrepStage(JobStageBase):
         handle.write("Checking for previous job... ".encode())
         handle.flush()
 
-        from dockci.models.job import Job, JobResult
-
         for tag in self.job.tag_tags_set:
             job = self.job.project.latest_job(
                 passed=True,
