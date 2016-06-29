@@ -172,7 +172,7 @@ class Project(RestModel):  # pylint:disable=no-init
         return self.url_for(self.slug)
 
     @classmethod
-    def url_for(cls, project_slug):
+    def url_for(cls, project_slug):  # pylint:disable=arguments-differ
         """ Generate the absolute URL to load a project from
 
         :param project_slug: Slug for the project to generate for

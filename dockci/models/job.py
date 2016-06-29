@@ -129,7 +129,7 @@ class JobStageTmp(RestModel):  # pylint:disable=no-init
     job_detail = None
 
     @classmethod
-    def url_for(cls, project_slug, job_slug, stage_slug):
+    def url_for(cls, project_slug, job_slug, stage_slug):  # noqa,pylint:disable=arguments-differ
         """ Generate the absolute URL to load a stage from
 
         :param project_slug: Slug for the project to generate for
@@ -242,7 +242,7 @@ class Job(RestModel):  # noqa,pylint:disable=too-many-public-methods,too-many-in
     git_committer_email = None
 
     @classmethod
-    def url_for(cls, project_slug, job_slug):
+    def url_for(cls, project_slug, job_slug):  # noqa,pylint:disable=arguments-differ
         """ Generate the absolute URL to load a job from
 
         :param project_slug: Slug for the project to generate for
