@@ -126,6 +126,10 @@ class JobStageTmp(RestModel):  # pylint:disable=no-init
     """ Quick and dirty list of job stages for the time being """
     SCHEMA = JobStageTmpSchema()
 
+    slug = None
+    success = None
+    job_detail = None
+
     @classmethod
     def url_for(_, project_slug, job_slug, stage_slug):
         return '{job_url}/stages/{stage_slug}'.format(
@@ -181,6 +185,27 @@ class JobSchema(Schema):
 
 class Job(RestModel):
     SCHEMA = JobSchema()
+
+    slug = None
+    state = None
+    result = None
+    commit = None
+    create_ts = None
+    start_ts = None
+    complete_ts = None
+    tag = None
+    git_branch = None
+    project_detail = None
+    project_slug = None
+    display_repo = None
+    command_repo = None
+    image_id = None
+    container_id = None
+    exit_code = None
+    git_author_name = None
+    git_author_email = None
+    git_committer_name = None
+    git_committer_email = None
 
     @classmethod
     def url_for(_, project_slug, job_slug):
