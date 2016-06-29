@@ -32,7 +32,7 @@ class ProjectSchema(Schema):
                                         load_from='target_registry')
 
 
-class Project(RestModel):  # pylint:disable=no-init
+class Project(RestModel):
     """ A project, representing a container to be built """
     SCHEMA = ProjectSchema()
 

@@ -120,7 +120,7 @@ class JobStageTmpSchema(Schema):
     job_detail = fields.Str(default=None, allow_none=True, load_only=True)
 
 
-class JobStageTmp(RestModel):  # pylint:disable=no-init
+class JobStageTmp(RestModel):
     """ Quick and dirty list of job stages for the time being """
     SCHEMA = JobStageTmpSchema()
 
