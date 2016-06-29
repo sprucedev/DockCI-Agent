@@ -25,8 +25,7 @@ class ProjectSchema(Schema):
     status = fields.Str(default=None, allow_none=True)
     branch_pattern = fields.Str(default=None, allow_none=True)
     github_repo_id = fields.Str(default=None, allow_none=True)
-    github_repo_hook = fields.Str(default=None, allow_none=True)
-    gitlab_repo_id = fields.Str(default=None, allow_none=True)
+    github_hook_id = fields.Str(default=None, allow_none=True)
     registry_detail = fields.Str(default=None, allow_none=True)
     target_registry_detail = fields.Str(default=None,
                                         allow_none=True,
