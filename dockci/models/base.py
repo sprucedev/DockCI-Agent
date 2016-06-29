@@ -1,6 +1,7 @@
 """ Base model classes, mixins """
 import logging
 import re
+import warnings
 
 from collections import defaultdict
 
@@ -57,6 +58,19 @@ class RestModel(object):
                 continue
 
             setattr(self, key, val)
+
+        for key in self.SCHEMA.declared_fields.keys():
+            if not hasattr(self, key):
+                warnings.warn(
+                    'Attribute "{key}" not declared on model '
+                    '{module}.{klass}'.format(
+                        key=key,
+                        module=self.__class__.__module__,
+                        klass=self.__class__.__name__,
+                    ),
+                    SyntaxWarning,
+                )
+                setattr(self, key, None)
 
     @classmethod
     def load(cls, *args, **kwargs):
