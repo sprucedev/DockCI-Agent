@@ -9,7 +9,7 @@ from dockci.server import cli, CONFIG, pika_conn_params
 @click.option('--dockci-url', required=True)
 @click.option('--dockci-apikey', required=True)
 @click.pass_context
-def run(ctx, dockci_url, dockci_apikey):
+def run(_, dockci_url, dockci_apikey):
     """ Run the agent daemon """
     CONFIG.dockci_url = dockci_url
     CONFIG.api_key = dockci_apikey
