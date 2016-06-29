@@ -251,7 +251,7 @@ class Project(RestModel):  # pylint:disable=no-init
 
     @target_registry.setter
     def target_registry(self, value):
-        """ Set the ``target_registry`` object
+        """ Set the ``target_registry`` cache
 
         :param value: Docker registry this project pushes to
         :type value: AuthenticatedRegistry
