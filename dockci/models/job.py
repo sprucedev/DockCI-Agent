@@ -196,7 +196,6 @@ class Job(RestModel):
     tag = None
     git_branch = None
     project_detail = None
-    project_slug = None
     display_repo = None
     command_repo = None
     image_id = None
@@ -302,17 +301,51 @@ class Job(RestModel):
 
     @property
     def project_slug(self):
-        """ Shortcut for the API to get project slug """
+        """ Slug of the associated ``Project``
+
+        :returns str: Slug of the loaded project
+        :returns None: No project is set
+
+        Examples:
+          >>> job = Job(project=Project(slug='testp'))
+          >>> job.project_slug
+          'testp'
+
+          >>> type(Job().project_slug)
+          <class 'NoneType'>
+
+          >>> job = Job()
+          >>> type(job.project_detail)
+          <class 'NoneType'>
+          >>> job.project_slug = 'testp'
+          >>> job.project_detail
+          '.../api/.../testp'
+
+          >>> job.project = Project(slug='firstproj')
+          >>> job.project_slug = 'differentproj'
+          >>> job.project_detail
+          '.../api/.../differentproj'
+          >>> type(job._project)
+          <class 'NoneType'>
+        """
+        if self.project is None:
+            return None
+
         return self.project.slug
 
     @project_slug.setter
     def project_slug(self, value):
+        """ Update the ``project_detail`` field and blank the project cache
+        unless the slug is the same
+
+        :param value: Project slug
+        :type value: str
+        """
         if self.project is not None:
             if self.project.slug != value:
-                self.project.slug = None
+                self.project = None
 
-        if self.project is None:
-            self.project = Project.load(value)
+        self.project_detail = Project.url_for(value)
 
     @property
     def github_api_status_endpoint(self):
