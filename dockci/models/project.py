@@ -1,6 +1,4 @@
-"""
-DockCI - CI, but with that all important Docker twist
-"""
+""" Project data handling """
 
 import re
 
@@ -19,6 +17,7 @@ DOCKER_REPO_RE = re.compile(r'[a-z0-9-_.]+')
 
 
 class ProjectSchema(Schema):
+    """ Schema for loading and saving ``Project`` models """
     slug = fields.Str(default=None, allow_none=True)
     name = fields.Str(default=None, allow_none=True)
     utility = fields.Bool(default=None, allow_none=True)
@@ -34,9 +33,7 @@ class ProjectSchema(Schema):
 
 
 class Project(RestModel):  # pylint:disable=no-init
-    """
-    A project, representing a container to be built
-    """
+    """ A project, representing a container to be built """
     SCHEMA = ProjectSchema()
 
     slug = None
@@ -57,12 +54,48 @@ class Project(RestModel):  # pylint:disable=no-init
         )
 
     def is_type(self, service):
-        """ Check if the project is of a given service type """
-        return getattr(self, '%s_repo_id' % service) is not None
+        """ Check if the project is of a given service type
+
+        :param service: Service name to check
+        :type service: str
+
+        :return bool:
+
+        Examples:
+
+          >>> Project().is_type('github')
+          False
+
+          >>> Project(github_repo_id='testr').is_type('github')
+          True
+
+          >>> Project().is_type('gitlab')
+          False
+
+          >>> Project(gitlab_repo_id='testr').is_type('gitlab')
+          True
+        """
+        return getattr(self, '%s_repo_id' % service, None) is not None
 
     @property
     def gitlab_api_repo_endpoint(self):
-        """ Repo endpoint for GitLab API """
+        """ Repo endpoint for GitLab API
+
+        :return str:
+
+        :raise ValueError: Project isn't a GitLab project
+
+        Examples:
+
+          >>> proj = Project(gitlab_repo_id='testr')
+          >>> proj.gitlab_api_repo_endpoint
+          'v3/projects/testr'
+
+          >>> Project().gitlab_api_repo_endpoint
+          Traceback (most recent call last):
+          ...
+          ValueError: Not a GitLab repository
+        """
         if self.gitlab_repo_id is None:
             raise ValueError("Not a GitLab repository")
 
@@ -70,7 +103,23 @@ class Project(RestModel):  # pylint:disable=no-init
 
     @property
     def github_api_repo_endpoint(self):
-        """ Repo endpoint for GitHub API """
+        """ Repo endpoint for GitHub API
+
+        :return str:
+
+        :raise ValueError: Project isn't a GitHub project
+
+        Examples:
+
+          >>> proj = Project(github_repo_id='testr')
+          >>> proj.github_api_repo_endpoint
+          '/repos/testr'
+
+          >>> Project().github_api_repo_endpoint
+          Traceback (most recent call last):
+          ...
+          ValueError: Not a GitHub repository
+        """
         if self.github_repo_id is None:
             raise ValueError("Not a GitHub repository")
 
@@ -78,7 +127,29 @@ class Project(RestModel):  # pylint:disable=no-init
 
     @property
     def github_api_hook_endpoint(self):
-        """ Hook endpoint for GitHub API """
+        """ Hook endpoint for GitHub API
+
+        :return str:
+
+        :raise ValueError: Project isn't a GitHub project
+        :raise ValueError: Project doesn't have a tracked hook ID
+
+        Examples:
+
+          >>> proj = Project(github_repo_id='testr', github_hook_id='testh')
+          >>> proj.github_api_hook_endpoint
+          '/repos/testr/hooks/testh'
+
+          >>> Project(github_repo_id='testr').github_api_hook_endpoint
+          Traceback (most recent call last):
+          ...
+          ValueError: GitHub hook not tracked
+
+          >>> Project(github_hook_id='testr').github_api_hook_endpoint
+          Traceback (most recent call last):
+          ...
+          ValueError: Not a GitHub repository
+        """
         if self.github_hook_id is None:
             raise ValueError("GitHub hook not tracked")
 
@@ -87,11 +158,34 @@ class Project(RestModel):  # pylint:disable=no-init
 
     @property
     def url(self):
-        """ URL for this project """
+        """ URL for this project
+
+        :return str:
+
+        Examples:
+
+          >>> CONFIG.dockci_url = 'http://dockcitest'
+          >>> proj = Project(slug='testproj')
+          >>> proj.url
+          'http://dockcitest/api/v1/projects/testproj'
+        """
         return self.url_for(self.slug)
 
     @classmethod
-    def url_for(_, project_slug):
+    def url_for(cls, project_slug):
+        """ Generate the absolute URL to load a project from
+
+        :param project_slug: Slug for the project to generate for
+        :type project_slug: str
+
+        :return str: Absolute URL for project with slug
+
+        Examples:
+
+          >>> CONFIG.dockci_url = 'http://dockcitest'
+          >>> Project.url_for('testproj')
+          'http://dockcitest/api/v1/projects/testproj'
+        """
         return '{dockci_url}/api/v1/projects/{project_slug}'.format(
             dockci_url=CONFIG.dockci_url,
             project_slug=project_slug,
@@ -102,6 +196,20 @@ class Project(RestModel):  # pylint:disable=no-init
                    versioned=None,
                    tag=None,
                    ):
+        """ Retrieve the latest job that matches the given conditions
+
+        :param passed: Has to have completed successfully
+        :type passed: bool
+        :param versioned: Has to have a tag
+        :type versioned: bool
+        :param tag: Has to match the given tag
+        :type tag: bool
+
+        :return dockci.models.job.Job: Job that matches all filters
+        :return None: No job matches all filters
+
+        :raise AssertionError: Response code unexpected
+        """
         from .job import Job
         response = requests.get(
             '%s/jobs' % self.url,
@@ -122,6 +230,15 @@ class Project(RestModel):  # pylint:disable=no-init
 
     @property
     def target_registry(self):
+        """ Docker registry this project pushes to. Loads from
+        ``target_registry_detail`` URL, or cached
+
+        :return AuthenticatedRegistry: Loaded from detail URL
+        :return None: No registry to push to
+
+        :raise AssertionError: Response code unexpected
+        """
+
         if self._target_registry is None:
             try:
                 self._target_registry = AuthenticatedRegistry.load_url(
@@ -134,4 +251,9 @@ class Project(RestModel):  # pylint:disable=no-init
 
     @target_registry.setter
     def target_registry(self, value):
+        """ Set the ``target_registry`` object
+
+        :param value: Docker registry this project pushes to
+        :type value: AuthenticatedRegistry
+        """
         self._target_registry = value
