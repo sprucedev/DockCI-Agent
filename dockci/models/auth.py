@@ -20,6 +20,13 @@ class AuthenticatedRegistry(RestModel):  # pylint:disable=no-init
     """ Quick and dirty list of job stages for the time being """
     SCHEMA = AuthenticatedRegistrySchema()
 
+    base_name = None
+    display_name = None
+    username = None
+    password = None
+    email = None
+    insecure = None
+
     @classmethod
     def url_for(_, base_name):
         return '{dockci_url}/api/v1/registries/{base_name}'.format(
