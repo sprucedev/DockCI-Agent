@@ -358,6 +358,32 @@ def client_kwargs_from_config(host_str):
     return docker_client_args
 
 
+GIT_NAME_REV_BRANCH = re.compile(r'^(remotes/origin/|refs/heads/)([^~]+)')
+
+
+def parse_branch_from_ref(ref, strict=True, relax=False):
+    """ Get a branch name from a git symbolic name """
+    parsed = _parse_from_ref(ref, GIT_NAME_REV_BRANCH, strict)
+    if parsed is not None:
+        return parsed
+    elif relax and '/' not in ref:
+        return ref
+
+    return None
+
+
+def _parse_from_ref(ref, regex, strict):
+    """ Logic for the tag/branch ref parsers """
+    ref_match = regex.search(ref)
+
+    if ref_match:
+        return ref_match.groups()[1]
+    elif not strict:
+        return ref
+
+    return None
+
+
 def project_root():
     """ Get the DockCI project root """
     return local(__file__).dirpath().join('..')
