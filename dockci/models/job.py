@@ -20,27 +20,27 @@ import semver
 from marshmallow import Schema, fields
 
 from .base import DateTimeOrNow, RestModel, ServiceBase
+from .project import Project
+from .job_meta.config import JobConfig
+from .job_meta.stages import JobStage
+from .job_meta.stages_main import (BuildStage,
+                                   TestStage,
+                                   )
+from .job_meta.stages_post import (PushStage,
+                                   FetchStage,
+                                   CleanupStage,
+                                   )
+from .job_meta.stages_prepare import (GitInfoStage,
+                                      GitMtimeStage,
+                                      TagVersionStage,
+                                      WorkdirStage,
+                                      )
+from .job_meta.stages_prepare_docker import (DockerLoginStage,
+                                             ProvisionStage,
+                                             PushPrepStage,
+                                             UtilStage,
+                                             )
 from dockci.exceptions import AlreadyRunError
-from dockci.models.project import Project
-from dockci.models.job_meta.config import JobConfig
-from dockci.models.job_meta.stages import JobStage
-from dockci.models.job_meta.stages_main import (BuildStage,
-                                                TestStage,
-                                                )
-from dockci.models.job_meta.stages_post import (PushStage,
-                                                FetchStage,
-                                                CleanupStage,
-                                                )
-from dockci.models.job_meta.stages_prepare import (GitInfoStage,
-                                                   GitMtimeStage,
-                                                   TagVersionStage,
-                                                   WorkdirStage,
-                                                   )
-from dockci.models.job_meta.stages_prepare_docker import (DockerLoginStage,
-                                                          ProvisionStage,
-                                                          PushPrepStage,
-                                                          UtilStage,
-                                                          )
 from dockci.util import (add_to_url_path,
                          bytes_human_readable,
                          )
