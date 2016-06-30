@@ -347,11 +347,6 @@ class Job(RestModel):  # noqa,pylint:disable=too-many-public-methods,too-many-in
         return '%s/%s' % (self.project.slug, self.slug)
 
     @property
-    def job_stage_slugs(self):
-        """ List of slugs for all job stages """
-        return [stage.slug for stage in self.job_stages]
-
-    @property
     def project_slug(self):
         """ Slug of the associated ``Project``
 
