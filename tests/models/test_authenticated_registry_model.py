@@ -24,7 +24,6 @@ class TestHash(object):
         assert hash(left) == hash(right)
 
     @pytest.mark.parametrize('attr_name,attr_value', [
-        ('id', 7),
         ('display_name', 'different'),
         ('base_name', 'different'),
         ('username', 'different'),

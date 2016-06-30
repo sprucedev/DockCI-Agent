@@ -1,18 +1,6 @@
-import random
 import subprocess
 
-from contextlib import contextmanager
-from urllib.parse import urlparse, urlunparse
-
-import alembic
 import pytest
-
-from flask_migrate import migrate
-
-from dockci.models.auth import Role
-from dockci.models.job import Job, JobStageTmp
-from dockci.models.project import Project
-from dockci.server import APP, app_init, DB, MIGRATE
 
 
 @pytest.yield_fixture

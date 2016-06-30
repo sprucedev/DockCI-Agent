@@ -136,24 +136,6 @@ class TestClientKwargsFromConfig(object):
         assert out['tls'].verify == None
 
 
-class TestParseRef(object):
-    """ Test the ``parse_ref`` function """
-    @pytest.mark.parametrize('ref,exp_type,exp_name', [
-        ('refs/heads/testbranch', 'branch', 'testbranch'),
-        ('remotes/origin/remotebranch', 'branch', 'remotebranch'),
-        ('refs/tags/testtag', 'tag', 'testtag'),
-        ('some_k1nd-0f_BR@NCH', 'branch', 'some_k1nd-0f_BR@NCH'),
-        ('refs/unknown/thing', None, 'refs/unknown/thing'),
-        ('things/heads/thing', None, 'things/heads/thing'),
-        ('things/tags/thing', None, 'things/tags/thing'),
-    ])
-    def test_all(self, ref, exp_type, exp_name):
-        """ Ensure that outputs are expected for given inputs """
-        actual_type, actual_name = parse_ref(ref)
-        assert actual_type == exp_type
-        assert actual_name == exp_name
-
-
 class TestGitRefNameOf(object):
     """ Test the ``git_head_ref_name`` function """
     @pytest.mark.parametrize('branch', ['master', 'otherbranch'])
@@ -266,21 +248,6 @@ class TestGitAncestor(object):
 
         assert is_git_ancestor(tmpgitdir, first_hash, second_hash)
         assert not is_git_ancestor(tmpgitdir, second_hash, first_hash)
-
-
-class TestAddToUrlPath(object):
-    """ Tests the ``add_to_url_path`` utility """
-    @pytest.mark.parametrize('in_url,in_path,exp_url', [
-        ('http://example.com', '/a/thing', 'http://example.com/a/thing'),
-        ('http://example.com/a', 'thing', 'http://example.com/a/thing'),
-        ('http://example.com/', '/a/thing', 'http://example.com/a/thing'),
-        ('http://example.com/a/', '/thing', 'http://example.com/a/thing'),
-        ('http://example.com//', '/a//thing', 'http://example.com/a/thing'),
-        ('http://example.com////', '/a///thing', 'http://example.com/a/thing'),
-    ])
-    def test_basic(self, in_url, in_path, exp_url):
-        """ Test that some basic combinations produce expected outputs """
-        assert add_to_url_path(in_url, in_path) == exp_url
 
 
 class TestGenFauxDockerLog(object):
