@@ -82,7 +82,6 @@ class JobStageBase(object):
         from dockci.models.job import JobStageTmp
         stage = JobStageTmp(job=self.job, slug=self.slug)
 
-        self.job.job_output_path().ensure_dir()
         with pika_conn() as pika_conn_:
             self.pika_conn = pika_conn_
             self.update_status({'state': 'starting'})
