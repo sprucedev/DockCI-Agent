@@ -56,8 +56,6 @@ def cli(_, debug):
 
 def init_config():
     """ Pre-run app setup """
-    # app_init_rollbar()
-
     logger = CONFIG.logger.getChild('init')
     logger.info("Loading app config")
 
