@@ -889,13 +889,13 @@ class Job(RestModel):  # noqa,pylint:disable=too-many-public-methods,too-many-in
         """ Directory for any job output data """
         return self.data_dir_path_for_project(self.project).join(self.slug)
 
-    def _run_now(self, workdir=None):
+    def run(self, workdir=None):
         """
         Worker func that performs the job
         """
         if workdir is None:
             with tempfile.TemporaryDirectory() as workdir:
-                return self._run_now(py.path.local(workdir))
+                return self.run(py.path.local(workdir))
 
         self.start_ts = 'now'
         self.save()

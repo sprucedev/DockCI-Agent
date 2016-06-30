@@ -241,7 +241,7 @@ class Consumer(object):  # pylint:disable=too-many-public-methods
         job = Job.load(project_slug, job_slug, **job_data)
 
         self.acknowledge_message(basic_deliver.delivery_tag)
-        job._run_now()
+        job.run()
 
         # self.reject_message(basic_deliver.delivery_tag)
 
