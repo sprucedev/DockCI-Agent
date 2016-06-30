@@ -5,13 +5,11 @@ import subprocess
 import docker
 import pytest
 
-from dockci.util import (add_to_url_path,
-                         client_kwargs_from_config,
+from dockci.util import (client_kwargs_from_config,
                          GenFauxDockerLog,
                          git_head_ref_name,
                          IOFauxDockerLog,
                          is_git_ancestor,
-                         parse_ref,
                          )
 
 
