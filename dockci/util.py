@@ -12,7 +12,6 @@ import json
 
 from contextlib import contextmanager
 from ipaddress import ip_address
-from urllib.parse import urlparse, urlunparse
 
 import docker.errors
 import py.error  # pylint:disable=import-error
@@ -257,12 +256,6 @@ def guess_multi_value(value):
     return [value]
 
 
-def fq_object_class_name(obj):
-    """ Fully qualified name for an object's class """
-    return '%s.%s' % (obj.__class__.__module__,
-                      obj.__class__.__name__)
-
-
 def write_all(handle, lines, flush=True):
     """ Encode, write, then flush the line """
     if isinstance(lines, (tuple, list)):
@@ -384,13 +377,6 @@ def project_root():
 def bin_root():
     """ Get the bin directory of the execution env """
     return local(sys.prefix).join('bin')
-
-
-def add_to_url_path(url, more_path):
-    """ Appends ``more_path`` to ``url`` path, and normalizes the output """
-    url = list(urlparse(url))
-    url[2] = re.sub('//+', '/', ('%s/%s' % (url[2], more_path)))
-    return urlunparse(url)
 
 
 def rabbit_stage_key(stage, mtype):
