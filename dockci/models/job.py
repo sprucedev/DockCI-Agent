@@ -40,7 +40,6 @@ from .job_meta.stages_prepare_docker import (DockerLoginStage,
                                              PushPrepStage,
                                              UtilStage,
                                              )
-from dockci.util import add_to_url_path
 
 
 STATE_MAP = {
@@ -268,7 +267,7 @@ class Job(RestModel):  # noqa,pylint:disable=too-many-public-methods,too-many-in
     @property
     def url(self):
         """ URL for this job """
-        return Job.url_for(self.project_slug, self.slug)
+        return Job.url_for(self.project.slug, self.slug)
 
     def __init__(self, *args, **kwargs):
         super(Job, self).__init__(*args, **kwargs)
@@ -327,88 +326,6 @@ class Job(RestModel):  # noqa,pylint:disable=too-many-public-methods,too-many-in
         if self._job_config is None:
             self._job_config = JobConfig(self)
         return self._job_config
-
-    @classmethod
-    def id_from_slug(cls, slug):
-        """ Convert a slug to an ID for ORM lookup """
-        return int(slug, 16)
-
-    @classmethod
-    def slug_from_id(cls, id_):
-        """ Convert an ID to a slug (padded hex) """
-        return '{:0>6}'.format(hex(id_)[2:])
-
-    @property
-    def compound_slug(self):
-        """
-        A slug that includes all identifiers necessary for this model to be
-        unique in the data set
-        """
-        return '%s/%s' % (self.project.slug, self.slug)
-
-    @property
-    def project_slug(self):
-        """ Slug of the associated ``Project``
-
-        :returns str: Slug of the loaded project
-        :returns None: No project is set
-
-        Examples:
-          >>> job = Job(project=Project(slug='testp'))
-          >>> job.project_slug
-          'testp'
-
-          >>> type(Job().project_slug)
-          <class 'NoneType'>
-
-          >>> job = Job()
-          >>> type(job.project_detail)
-          <class 'NoneType'>
-          >>> job.project_slug = 'testp'
-          >>> job.project_detail
-          '.../api/.../testp'
-
-          >>> job.project = Project(slug='firstproj')
-          >>> job.project_slug = 'differentproj'
-          >>> job.project_detail
-          '.../api/.../differentproj'
-          >>> type(job._project)
-          <class 'NoneType'>
-        """
-        if self.project is None:
-            return None
-
-        return self.project.slug
-
-    @project_slug.setter
-    def project_slug(self, value):
-        """ Update the ``project_detail`` field and blank the project cache
-        unless the slug is the same
-
-        :param value: Project slug
-        :type value: str
-        """
-        if self.project is not None:
-            if self.project.slug != value:
-                self.project = None
-
-        self.project_detail = Project.url_for(value)
-
-    @property
-    def github_api_status_endpoint(self):
-        """ Status endpoint for GitHub API """
-        return '%s/commits/%s/statuses' % (
-            self.project.github_api_repo_endpoint,
-            self.commit,
-        )
-
-    @property
-    def gitlab_api_status_endpoint(self):
-        """ Status endpoint for GitLab API """
-        return add_to_url_path(
-            self.project.gitlab_api_repo_endpoint,
-            '/statuses/%s' % self.commit,
-        )
 
     def changed_result(self, workdir=None):
         """
@@ -567,13 +484,6 @@ class Job(RestModel):  # noqa,pylint:disable=too-many-public-methods,too-many-in
             project=self.project,
             job=self,
         )
-
-    @property
-    def is_stable_release(self):
-        """
-        Check if this is a successfully run, tagged job
-        """
-        return self.result == 'success' and self.tag is not None
 
     @property
     def utilities(self):
@@ -862,27 +772,6 @@ class Job(RestModel):  # noqa,pylint:disable=too-many-public-methods,too-many-in
             )
         else:
             return messages[0]
-
-    @classmethod
-    def delete_all_in_project(cls, project):
-        """ Delete all jobs and data for the given project """
-        cls.data_dir_path_for_project(project).remove(rec=True)
-
-    @classmethod
-    def data_dir_path_for_project(cls, project):
-        """ Get the path that jobs reside in for the given project """
-        return cls.data_dir_path().join(project.slug)
-
-    @classmethod
-    def data_dir_path(cls):
-        """ Temporary mock for removing YAML model """
-        path = py.path.local('data')
-        path.ensure(dir=True)
-        return path
-
-    def job_output_path(self):
-        """ Directory for any job output data """
-        return self.data_dir_path_for_project(self.project).join(self.slug)
 
     def run(self, workdir=None):
         """

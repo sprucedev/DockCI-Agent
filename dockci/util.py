@@ -263,14 +263,6 @@ def fq_object_class_name(obj):
                       obj.__class__.__name__)
 
 
-def full_model_slug(model):
-    """ Get a compound slug if possible, otherwise just the slug is fine """
-    if hasattr(model, 'compound_slug'):
-        return model.compound_slug
-
-    return model.slug
-
-
 def write_all(handle, lines, flush=True):
     """ Encode, write, then flush the line """
     if isinstance(lines, (tuple, list)):
