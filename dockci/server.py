@@ -15,9 +15,14 @@ import rollbar
 from .util import project_root
 
 
-class Config(object):
+class Config(object):  # pylint:disable=too-many-instance-attributes
+    """ Ad-hoc application configuration tied to click context """
     @property
-    def config_dict(_):
+    def config_dict(self):  # pylint:disable=no-self-use
+        """ Get the dict containing all config attached to the click context
+
+        :return dict: All app config
+        """
         context = click.get_current_context()
         if context.obj is None:
             context.obj = {}
@@ -37,8 +42,9 @@ CONFIG = Config()
 @click.group()
 @click.option('--debug/--no-debug', default=False)
 @click.pass_context
-def cli(ctx, debug):
+def cli(_, debug):
     """ Placeholder for global CLI group """
+    # pylint:disable=attribute-defined-outside-init
     CONFIG.logger = logging.getLogger('dockci')
     CONFIG.debug = debug
 
@@ -55,6 +61,7 @@ def init_config():
     logger = CONFIG.logger.getChild('init')
     logger.info("Loading app config")
 
+    # pylint:disable=attribute-defined-outside-init
     CONFIG.rabbitmq_user = os.environ.get(
         'RABBITMQ_ENV_BACKEND_USER', 'guest')
     CONFIG.rabbitmq_password = os.environ.get(
