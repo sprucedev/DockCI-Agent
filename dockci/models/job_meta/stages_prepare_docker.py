@@ -17,6 +17,7 @@ from dockci.exceptions import (AlreadyBuiltError,
 from dockci.models.base import ServiceBase
 from dockci.models.blob import FilesystemBlob
 from dockci.models.job_meta.stages import JobStageBase
+from dockci.server import CONFIG
 from dockci.util import (built_docker_image_id,
                          docker_ensure_image,
                          IOFauxDockerLog,
@@ -599,19 +600,13 @@ class UtilStage(InlineProjectStage):
         Returns:
           bool: True on all success, False on at least 1 failure
         """
-        input_files = [parse_util_file(file_data)
-                       for file_data
-                       in self.config.get('input', ())]
-        output_files = [parse_util_file(file_data)
-                        for file_data
-                        in self.config.get('output', ())]
+        input_files = self.config['input']
+        output_files = self.config['output']
         blob_store = None
 
         if input_files:
-            blob_path = self.job.data_dir_path().join('_util_blobs')
-            blob_path.ensure_dir()
             blob_store = FilesystemBlob.from_files(
-                blob_path,
+                CONFIG.blob_path,
                 self.workdir,
                 [
                     self.workdir.join(input_data['from'])
