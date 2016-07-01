@@ -2,45 +2,148 @@
 Job metadata stored along side the code
 """
 
-from yaml_model import LoadOnAccess, Model, OnAccess
+from marshmallow import fields, Schema
+from yaml import safe_load as load_yaml
+
+from dockci.models.base import BaseModel
 
 
-def get_job(slug):
+def parse_util_file(file_data):
     """
-    Wrapper to import, and return a Job object for the JobConfig to avoid
-    cyclic import
+    Parse the input/output lines of util config
+
+    Examples:
+
+    >>> files = parse_util_file('/util /work/thing')
+    >>> files['from']
+    '/util'
+    >>> files['to']
+    '/work/thing'
+
+    >>> files = parse_util_file({'from': '/util', 'to': '/work/thing'})
+    >>> files['from']
+    '/util'
+    >>> files['to']
+    '/work/thing'
+
+    >>> files = parse_util_file('/work/thing')
+    >>> files['from']
+    '/work/thing'
+    >>> files['to']
+    '/work/thing'
+
+    >>> files = parse_util_file({'to': '/work/thing'})
+    >>> files['from']
+    '/work/thing'
+    >>> files['to']
+    '/work/thing'
+
+    >>> files = parse_util_file({'from': '/util'})
+    >>> files['from']
+    '/util'
+    >>> files['to']
+    '/util'
     """
-    from dockci.models.job import Job
-    return Job.load(slug)
+    if isinstance(file_data, dict):
+        if 'from' not in file_data:
+            return {'from': file_data['to'], 'to': file_data['to']}
+        if 'to' not in file_data:
+            return {'from': file_data['from'], 'to': file_data['from']}
+
+        return file_data
+
+    else:
+        parts = file_data.split(' ')
+        if len(parts) == 1:
+            return {'from': file_data, 'to': file_data}
+        else:
+            return {'from': parts[0], 'to': parts[1]}
 
 
-class JobConfig(Model):  # pylint:disable=too-few-public-methods
-    """
-    Job config, loaded from the repo
-    """
+class FileCopyField(fields.Field):
+    """ Field for deserializing file copy data in config """
+    def _deserialize(self, value, attr, data):
+        return parse_util_file(value)
 
-    slug = 'dockci.yaml'
 
-    job = OnAccess(lambda self: get_job(self.job_slug))
-    job_slug = OnAccess(lambda self: self.job.slug)  # TODO infinite loop
+class UtilitySchema(Schema):
+    name = fields.Str(required=True)
+    command = fields.Str()
+    input = fields.List(FileCopyField, missing=lambda: [])
+    output = fields.List(FileCopyField, missing=lambda: [])
 
-    job_output = LoadOnAccess(default=lambda _: {})
-    services = LoadOnAccess(default=lambda _: {})
-    utilities = LoadOnAccess(default=lambda _: [])
-    dockerfile = LoadOnAccess(default='Dockerfile')
 
-    repo_name = LoadOnAccess(default=lambda self: self.job.project.slug)
+class ServiceSchema(Schema):
+    name = fields.Str(required=True)
+    alias = fields.Str()
+    environment = fields.Dict(missing=lambda: {})
 
-    skip_tests = LoadOnAccess(default=False)
 
-    def __init__(self, job):
-        super(JobConfig, self).__init__()
+class JobConfigSchema(Schema):
+    """ Schema for loading and saving ``JobStageTmp`` models """
+    job_output = fields.Dict(missing=lambda: {})
+    services = fields.Nested(ServiceSchema, many=True, missing=lambda: [])
+    utilities = fields.Nested(UtilitySchema, many=True, missing=lambda: [])
 
-        assert job is not None, "Job is given"
+    dockerfile = fields.Str(missing='Dockerfile')
+    repo_name = fields.Str()
+    skip_tests = fields.Bool(missing=False)
 
-        self.job = job
-        self.job_slug = job.slug
 
-    def data_file_path(self):
-        # Our data file path is <job output>/<slug>
-        return self.job.job_output_path().join(JobConfig.slug)
+class JobConfig(BaseModel):
+    """ Job config, loaded from the repo """
+    SCHEMA = JobConfigSchema(strict=True)
+
+    job = None
+
+    job_output = None
+    services = None
+    utilities = None
+    dockerfile = 'Dockerfile'
+    skip_tests = False
+
+    _repo_name = None
+
+    def __init__(self, **kwargs):
+        self.set_all(**self.SCHEMA.load({}).data)
+        super(JobConfig, self).__init__(**kwargs)
+
+    @property
+    def repo_name(self):
+        """ Docker repository name
+
+        :return str:
+
+        Examples:
+
+          >>> JobConfig(repo_name='testr').repo_name
+          'testr'
+
+          from ..job import Job
+          from ..project import Project
+          >>> proj = Project(slug='testp')
+          >>> job = Job(project=proj)
+          >>> conf = JobConfig(job=job)
+          >>> conf.repo_name
+          'testp'
+        """
+        if self._repo_name is not None:
+            return self._repo_name
+        return self.job.project.slug
+
+    @repo_name.setter
+    def repo_name(self, value):
+        """ Set cached/overridden repo name """
+        self._repo_name = value
+
+    def load_yaml_file(self, path):
+        """ Load the data in the file as YAML, then deserialize into the model
+        with the schema
+
+        :param path: Path to the YAML file to load
+        :type path: py.path.local
+        """
+        with path.open('r') as handle:
+            data = load_yaml(handle)
+
+        self.set_all(**self.SCHEMA.load(data).data)

@@ -266,58 +266,6 @@ class ProvisionStage(InlineProjectStage):
         return True
 
 
-def parse_util_file(file_data):
-    """
-    Parse the input/output lines of util config
-
-    Examples:
-
-    >>> files = parse_util_file('/util /work/thing')
-    >>> files['from']
-    '/util'
-    >>> files['to']
-    '/work/thing'
-
-    >>> files = parse_util_file({'from': '/util', 'to': '/work/thing'})
-    >>> files['from']
-    '/util'
-    >>> files['to']
-    '/work/thing'
-
-    >>> files = parse_util_file('/work/thing')
-    >>> files['from']
-    '/work/thing'
-    >>> files['to']
-    '/work/thing'
-
-    >>> files = parse_util_file({'to': '/work/thing'})
-    >>> files['from']
-    '/work/thing'
-    >>> files['to']
-    '/work/thing'
-
-    >>> files = parse_util_file({'from': '/util'})
-    >>> files['from']
-    '/util'
-    >>> files['to']
-    '/util'
-    """
-    if isinstance(file_data, dict):
-        if 'from' not in file_data:
-            return {'from': file_data['to'], 'to': file_data['to']}
-        if 'to' not in file_data:
-            return {'from': file_data['from'], 'to': file_data['from']}
-
-        return file_data
-
-    else:
-        parts = file_data.split(' ')
-        if len(parts) == 1:
-            return {'from': file_data, 'to': file_data}
-        else:
-            return {'from': parts[0], 'to': parts[1]}
-
-
 class UtilStage(InlineProjectStage):
     """ Create, and run a utility stage container """
     def __init__(self, job, workdir, slug_suffix, config):

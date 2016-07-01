@@ -120,11 +120,10 @@ class WorkdirStage(JobStageBase):
         )
 
         # check for, and load job config
-        job_config_file = self.workdir.join(JobConfig.slug)
+        job_config_file = self.workdir.join('dockci.yaml')
         if job_config_file.check(file=True):
             # pylint:disable=no-member
-            job.job_config.load(data_file=job_config_file)
-            job.job_config.save()
+            job.job_config.load_yaml_file(job_config_file)
 
         return True
 

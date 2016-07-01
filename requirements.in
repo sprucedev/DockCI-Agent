@@ -12,4 +12,3 @@ PyYAML==3.11
 redis==2.10.5
 rollbar==0.11.0
 semver==2.2.1
-yaml-model==0.1.5

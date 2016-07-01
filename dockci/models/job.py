@@ -324,7 +324,7 @@ class Job(RestModel):  # noqa,pylint:disable=too-many-public-methods,too-many-in
     def job_config(self):
         """ JobConfig for this Job """
         if self._job_config is None:
-            self._job_config = JobConfig(self)
+            self._job_config = JobConfig(job=self)
         return self._job_config
 
     def changed_result(self, workdir=None):

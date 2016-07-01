@@ -42,10 +42,8 @@ def abs_detail_url(url):
     )
 
 
-class RestModel(object):
-    """ Base model for RESTful loading of data """
-    _new = True
-
+class BaseModel(object):
+    """ Base model for loading/dumping to data """
     def __init__(self, **kwargs):
         self.set_all(**kwargs)
 
@@ -75,6 +73,16 @@ class RestModel(object):
                     SyntaxWarning,
                 )
                 setattr(self, key, None)
+
+    @property
+    def SCHEMA(self):  # pylint:disable=invalid-name
+        """ Schema for loading and saving class instances """
+        raise NotImplementedError("Must override 'SCHEMA' attribute")
+
+
+class RestModel(BaseModel):
+    """ Base model for RESTful loading of data """
+    _new = True
 
     @classmethod
     def load(cls, *args, **kwargs):
@@ -164,11 +172,6 @@ class RestModel(object):
         :returns bool:
         """
         return bool(self._new)
-
-    @property
-    def SCHEMA(self):  # pylint:disable=invalid-name
-        """ Schema for loading and saving class instances """
-        raise NotImplementedError("Must override 'SCHEMA' attribute")
 
     @property
     def url(self):
