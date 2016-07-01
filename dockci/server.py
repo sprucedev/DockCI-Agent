@@ -15,6 +15,10 @@ import rollbar
 from .util import project_root
 
 
+LOG_FORMAT = ('%(levelname) -7s %(asctime)s %(name) -10s %(funcName) '
+              '-10s %(lineno) -4d: %(message)s')
+
+
 class Config(object):  # pylint:disable=too-many-instance-attributes
     """ Ad-hoc application configuration tied to click context """
     @property
@@ -45,13 +49,22 @@ CONFIG = Config()
 def cli(_, debug):
     """ Placeholder for global CLI group """
     # pylint:disable=attribute-defined-outside-init
-    CONFIG.logger = logging.getLogger('dockci')
     CONFIG.debug = debug
+
+    init_logging()
+    CONFIG.logger = logging.getLogger('dockci')
+    CONFIG.logger.debug("Running in DEBUG mode")
 
     init_config()
     init_rollbar()
 
     mimetypes.add_type('application/x-yaml', 'yaml')
+
+
+def init_logging():
+    """ Logging setup """
+    logging.basicConfig(level=logging.DEBUG if CONFIG.debug else logging.INFO,
+                        format=LOG_FORMAT)
 
 
 def init_config():
