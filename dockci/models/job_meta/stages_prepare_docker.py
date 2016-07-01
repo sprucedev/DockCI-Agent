@@ -225,11 +225,11 @@ class ProvisionStage(InlineProjectStage):
 
     def get_services(self):
         return [
-            ServiceBase.from_image(image,
+            ServiceBase.from_image(conf['name'],
                                    name=conf.get('alias', None),
                                    meta={'config': conf},
                                    )
-            for image, conf in self.job.job_config.services.items()
+            for conf in self.job.job_config.services
         ]
 
     def runnable_inline(self, service, image_id, handle, faux_log):
@@ -295,11 +295,7 @@ class UtilStage(InlineProjectStage):
           str: New image ID with files added
           bool: False if failure
         """
-        input_files = [
-            parse_util_file(input_data)
-            for input_data
-            in self.config.get('input', [])
-        ]
+        input_files = self.config['input']
 
         success = True
         if not input_files:
@@ -405,11 +401,7 @@ class UtilStage(InlineProjectStage):
         Returns:
           bool: True when all files retrieved as expected, False otherwise
         """
-        output_files = [
-            parse_util_file(output_data)
-            for output_data
-            in self.config.get('output', [])
-        ]
+        output_files = self.config['output']
         success = True
         if not output_files:
             faux_log.update(id="output", progress="Skipped")
