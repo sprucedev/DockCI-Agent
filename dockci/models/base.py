@@ -22,8 +22,14 @@ class DateTimeOrNow(fields.DateTime):
 
 
 class RegexField(fields.Str):
+    """ Serialize and deserialize regex to/from ``re`` objects """
     def _serialize(self, value, attr, obj):
         """ Serialize regex to a string
+
+        :param value: regex object to serialize
+        :type value: _sre.SRE_Pattern
+
+        :rtype: str
 
         Examples:
 
@@ -39,6 +45,11 @@ class RegexField(fields.Str):
 
     def _deserialize(self, value, attr, data):
         """ Deserialize a string to a regex
+
+        :param value: string to turn into regex object
+        :type value: str
+
+        :rtype: _sre.SRE_Pattern
 
         Examples:
 
@@ -63,6 +74,11 @@ class RegexField(fields.Str):
     def _validate(self, value):
         """ Deserialize a string to a regex
 
+        :param value: regex string to validate
+        :type value: str
+
+        :raise marshmallow.exceptions.ValidationError: when invalid regex
+
         Examples:
 
           >>> RegexField()._validate('.*')
@@ -79,7 +95,7 @@ class RegexField(fields.Str):
             return
         self._compile_re(value)
 
-    def _compile_re(self, value):
+    def _compile_re(self, value):  # pylint:disable=no-self-use
         """ Compile a regex, or raise exception on failure """
         try:
             return re.compile(value)
