@@ -387,3 +387,46 @@ def rabbit_stage_key(stage, mtype):
         stage_slug=stage.slug,
         mtype=mtype,
     )
+
+
+def normalize_stream_lines(stream):
+    """
+    Generator to split an iterator (stream, list, generator, etc) into single
+    line strings, or bytes (dependant on input)
+
+    :param stream: iterable to split
+    :type stream: iterator
+
+    :rtype: generator
+
+    Examples:
+
+      >>> from io import BytesIO, StringIO
+      >>> tuple(normalize_stream_lines(StringIO('test\\nsomething')))
+      ('test\\n', 'something')
+      >>> tuple(normalize_stream_lines(BytesIO(b'test\\nsomething')))
+      (b'test\\n', b'something')
+      >>> tuple(normalize_stream_lines(StringIO('test\\nsomething\\n')))
+      ('test\\n', 'something\\n')
+      >>> tuple(normalize_stream_lines(('test', 'something')))
+      ('test', 'something')
+      >>> tuple(normalize_stream_lines(('test\\n', 'something')))
+      ('test\\n', 'something')
+      >>> tuple(normalize_stream_lines(('test\\nsomething',)))
+      ('test\\n', 'something')
+      >>> tuple(normalize_stream_lines(('test\\nsomething\\n',)))
+      ('test\\n', 'something\\n')
+      >>> tuple(normalize_stream_lines(('test\\n\\nsomething',)))
+      ('test\\n', '\\n', 'something')
+    """
+    for chunk in stream:
+        nl_char = '\n' if isinstance(chunk, str) else b'\n'
+        lines = chunk.split(nl_char)
+        max_idx = len(lines) - 1
+        for idx, line in enumerate(lines):
+            if idx < max_idx:
+                yield line + nl_char
+            elif len(line) == 0:
+                continue
+            else:
+                yield line

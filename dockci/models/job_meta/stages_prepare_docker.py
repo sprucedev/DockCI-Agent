@@ -21,6 +21,7 @@ from dockci.server import CONFIG
 from dockci.util import (built_docker_image_id,
                          docker_ensure_image,
                          IOFauxDockerLog,
+                         normalize_stream_lines,
                          path_contained,
                          )
 
@@ -324,8 +325,10 @@ class UtilStage(InlineProjectStage):
         )
 
         # Watch for errors
-        for line in output:
-            data = json.loads(line.decode())
+        for line in normalize_stream_lines(output):
+            if len(line) == 0:
+                continue
+            data = json.loads(line)
             if 'errorDetail' in data:
                 faux_log.update(**data)
                 success = False

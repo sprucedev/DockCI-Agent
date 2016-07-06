@@ -15,7 +15,7 @@ from dockci.exceptions import (AlreadyRunError,
                                )
 from dockci.server import pika_conn, redis_pool
 from dockci.stage_io import StageIO
-from dockci.util import bytes_str, rabbit_stage_key
+from dockci.util import bytes_str, normalize_stream_lines, rabbit_stage_key
 
 
 class JobStageBase(object):
@@ -253,15 +253,17 @@ class DockerStage(JobStageBase):
             return 0
 
         line = ''
-        for line in output:
+        for line in normalize_stream_lines(output):
             line_bytes, line_str = bytes_str(line)
+
             handle.write(line_bytes)
 
-            # Issues with push not having new lines
-            if line_str[-1] != '\n':
-                handle.write(b'\n')
+            if len(line_bytes) == 0:
+                continue
 
-            handle.flush()
+            # line_bytes with push not having new lines
+            if line_bytes[-1] != b'\n':
+                handle.write(b'\n')
 
             self.on_line(line_str)
 
