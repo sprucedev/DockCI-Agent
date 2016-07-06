@@ -7,7 +7,7 @@ from collections import defaultdict
 
 import requests
 
-from marshmallow import fields
+from marshmallow import fields, ValidationError
 
 from dockci.server import CONFIG
 
@@ -19,6 +19,72 @@ class DateTimeOrNow(fields.DateTime):
         if value is 'now':
             return 'now'
         return super(DateTimeOrNow, self)._serialize(value, attr, obj)
+
+
+class RegexField(fields.Str):
+    def _serialize(self, value, attr, obj):
+        """ Serialize regex to a string
+
+        Examples:
+
+          >>> RegexField()._serialize(re.compile('.*'), None, None)
+          '.*'
+
+          >>> type(RegexField()._serialize(None, None, None))
+          <class 'NoneType'>
+        """
+        if value is None:
+            return None
+        return value.pattern
+
+    def _deserialize(self, value, attr, data):
+        """ Deserialize a string to a regex
+
+        Examples:
+
+          >>> pat = RegexField()._deserialize('.*', None, None)
+          >>> type(pat)
+          <class '_sre.SRE_Pattern'>
+          >>> pat.pattern
+          '.*'
+
+          >>> type(RegexField()._deserialize(None, None, None))
+          <class 'NoneType'>
+
+          >>> RegexField()._deserialize('(', None, None)
+          Traceback (most recent call last):
+          ...
+          marshmallow.exceptions.ValidationError: unbalanced parenthesis
+        """
+        if value is None:
+            return None
+        return self._compile_re(value)
+
+    def _validate(self, value):
+        """ Deserialize a string to a regex
+
+        Examples:
+
+          >>> RegexField()._validate('.*')
+
+          >>> RegexField()._validate(None)
+
+          >>> RegexField()._validate('(')
+          Traceback (most recent call last):
+          ...
+          marshmallow.exceptions.ValidationError: unbalanced parenthesis
+        """
+        super(RegexField, self)._validate(value)
+        if value is None:
+            return
+        self._compile_re(value)
+
+    def _compile_re(self, value):
+        """ Compile a regex, or raise exception on failure """
+        try:
+            return re.compile(value)
+        except re.error as ex:
+            raise ValidationError(str(ex))
 
 
 def abs_detail_url(url):
