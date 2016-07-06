@@ -261,10 +261,6 @@ class DockerStage(JobStageBase):
             if len(line_bytes) == 0:
                 continue
 
-            # line_bytes with push not having new lines
-            if line_bytes[-1] != b'\n':
-                handle.write(b'\n')
-
             self.on_line(line_str)
 
             # Automatically handle error lines
