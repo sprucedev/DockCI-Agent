@@ -19,6 +19,7 @@ from dockci.models.blob import FilesystemBlob
 from dockci.models.job_meta.stages import JobStageBase
 from dockci.server import CONFIG
 from dockci.util import (built_docker_image_id,
+                         bytes_str,
                          docker_ensure_image,
                          IOFauxDockerLog,
                          normalize_stream_lines,
@@ -328,7 +329,9 @@ class UtilStage(InlineProjectStage):
         for line in normalize_stream_lines(output):
             if len(line) == 0:
                 continue
-            data = json.loads(line)
+
+            _, line_str = bytes_str(line)
+            data = json.loads(line_str)
             if 'errorDetail' in data:
                 faux_log.update(**data)
                 success = False
