@@ -230,6 +230,7 @@ class Job(RestModel):  # noqa,pylint:disable=too-many-public-methods,too-many-in
     tag = None
     git_branch = None
     project_detail = None
+    project_slug = None
     display_repo = None
     command_repo = None
     image_id = None
