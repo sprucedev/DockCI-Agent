@@ -81,6 +81,10 @@ def init_config():
         'RABBITMQ_PORT_5672_TCP_ADDR', 'localhost')
     CONFIG.rabbitmq_port = int(os.environ.get(
         'RABBITMQ_PORT_5672_TCP_PORT', 5672))
+    CONFIG.rabbitmq_exchange = os.environ.get(
+        'RABBITMQ_EXCHANGE', 'dockci.queue')
+    CONFIG.rabbitmq_queue = os.environ.get(
+        'RABBITMQ_QUEUE', 'dockci.agent')
 
     CONFIG.redis_host = os.environ.get(
         'REDIS_PORT_6379_ADDR', 'localhost')
@@ -119,7 +123,6 @@ def pika_conn_params():
             CONFIG.rabbitmq_user,
             CONFIG.rabbitmq_password,
         ),
-        heartbeat_interval=60 * 30,  # 30min
     )
 
 
