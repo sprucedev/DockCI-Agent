@@ -15,14 +15,18 @@ from dockci.server import CONFIG
 ROUTING_KEY = '*'
 RECONNECT_TIMER = 5
 
+
 class Consumer(object):
+    """ Daemon to take jobs from RabbitMQ and start workers for them """
+
     def __init__(self, conn_params, logger):
         self._conn_params = conn_params
         self._logger = logger
         self._transport = None
-        self._connect_future = None
+        self._init_future = None
 
     def run(self):
+        """ Connect and run the event loop """
         loop = asyncio.get_event_loop()
         loop.set_default_executor(futures.ProcessPoolExecutor(max_workers=1))
         self._init_future = self._rmq_init()
@@ -31,6 +35,7 @@ class Consumer(object):
 
     @asyncio.coroutine
     def _rmq_init(self):
+        """ Connect, declare, bind, consume. Retry on failure """
         while True:
             if self._transport is not None:
                 self._transport.close()
@@ -51,7 +56,9 @@ class Consumer(object):
                 self._logger.info('Creating channel')
                 channel = yield from protocol.channel()
 
-                self._logger.info('Declaring queue "%s"', CONFIG.rabbitmq_queue)
+                self._logger.info(
+                    'Declaring queue "%s"', CONFIG.rabbitmq_queue
+                )
                 yield from channel.queue_declare(
                     CONFIG.rabbitmq_queue,
                     passive=True,
@@ -85,7 +92,9 @@ class Consumer(object):
                     except AttributeError:
                         self._logger.error(err)
 
-                self._logger.info('Reconnecting in %d seconds', RECONNECT_TIMER)
+                self._logger.info(
+                    'Reconnecting in %d seconds', RECONNECT_TIMER
+                )
                 yield from asyncio.sleep(RECONNECT_TIMER)
 
         self._init_future = None
@@ -93,6 +102,7 @@ class Consumer(object):
 
     @asyncio.coroutine
     def _on_connect_error(self, err):
+        """ Log errors, and try to reinit if that's not already happening """
         try:
             self._logger.error(err.message)
         except AttributeError:
@@ -104,6 +114,7 @@ class Consumer(object):
 
     @asyncio.coroutine
     def _rmq_consume(self, channel):
+        """ Start to consume messages """
         self._logger.info('Starting to consume')
         yield from channel.basic_consume(
             self._on_message,
@@ -111,6 +122,8 @@ class Consumer(object):
         )
 
     def _on_message(self, channel, body, envelope, properties):
+        """ Start processing the message, then start consuming more messages
+        """
         try:
             yield from self._process_message(
                 channel, body, envelope, properties,
@@ -119,7 +132,8 @@ class Consumer(object):
             asyncio.async(self._rmq_consume(channel))
 
     @asyncio.coroutine
-    def _process_message(self, channel, body, envelope, properties):
+    def _process_message(self, channel, body, envelope, _):
+        """ Parse message data and start in a worker """
         self._logger.info('Received message')
         self._logger.debug('Message body: %s', body)
 
