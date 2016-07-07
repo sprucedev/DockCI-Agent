@@ -227,7 +227,7 @@ class RestModel(BaseModel):
         url = abs_detail_url(url)
         data = self.SCHEMA.dump(self).data
 
-        logging.warning('Saving %s with %s', self, data)
+        logging.warning('Saving %s with %s to %s', self, data, url)
 
         method = requests.put if self.is_new else requests.patch
 
