@@ -67,6 +67,7 @@ class FileCopyField(fields.Field):
 
 
 class UtilitySchema(Schema):
+    """ Config for utilities to be run """
     name = fields.Str(required=True)
     command = fields.Str()
     input = fields.List(FileCopyField, missing=lambda: [])
@@ -74,6 +75,7 @@ class UtilitySchema(Schema):
 
 
 class ServiceSchema(Schema):
+    """ Config for services to be provisioned """
     name = fields.Str(required=True)
     alias = fields.Str()
     environment = fields.Dict(missing=lambda: {})

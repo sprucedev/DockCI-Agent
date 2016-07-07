@@ -1,4 +1,8 @@
 """ Base model classes, mixins """
+
+# TODO fewer lines somehow
+# pylint:disable=too-many-lines
+
 import logging
 import re
 import warnings

@@ -1,6 +1,6 @@
 """ Click commands for the agent daemon """
 import click
-import py.path
+import py.path  # pylint:disable=import-error
 
 from dockci.consumer import Consumer
 from dockci.server import cli, CONFIG, pika_conn_params
