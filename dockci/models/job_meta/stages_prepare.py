@@ -155,16 +155,11 @@ class GitInfoStage(JobStageBase):
         handle.write("Committer name is %s\n" % job.git_committer_name)
         handle.write("Committer email is %s\n" % job.git_committer_email)
 
-        # XXX reenable ancestor job
-        # ancestor_job = self.job.project.latest_job_ancestor(
-        #     self.workdir,
-        #     job.commit,
-        # )
-        # if ancestor_job:
-        #     handle.write((
-        #         "Ancestor job is %s\n" % ancestor_job.slug
-        #     ).encode())
-        #     job.ancestor_job_id = ancestor_job.id
+        job.resolve_job_ancestor(repo)
+        if job.ancestor_job:
+            handle.write((
+                "Ancestor job is %s\n" % job.ancestor_job.slug
+            ).encode())
 
         if job.git_branch is None:
             job.git_branch = git_head_ref_name(self.workdir)

@@ -226,6 +226,42 @@ class Project(RestModel):
         except IndexError:
             return None
 
+    def filtered_commit_refs(self, filters, repo):
+        """ Get commits hash list for this project
+
+        :param filters: Job filters to apply to the query
+        :type filters: dict
+        :param repo: Git repo to resolve the commits with
+        :type repo: pygit2.Repository
+
+        :return list: List of pygit2 ref objects
+
+        :raise AssertionError: Response code unexpected
+        """
+        refs = [
+            repo[ref_hash]
+            for ref_hash
+            in self.filtered_commits(filters)
+        ]
+        return refs
+
+    def filtered_commits(self, filters):
+        """ Get commits hash list for this project
+
+        :param filters: Job filters to apply to the query
+        :type filters: dict
+
+        :return list: List of commit hashes
+
+        :raise AssertionError: Response code unexpected
+        """
+        response = requests.get(
+            '%s/jobs/commits' % self.url,
+            params=filters,
+        )
+        assert response.status_code == 200
+        return response.json()['items']
+
     _target_registry = None
 
     @property

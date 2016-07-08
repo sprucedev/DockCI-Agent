@@ -15,6 +15,7 @@ from itertools import chain
 
 import docker
 import py.path  # pylint:disable=import-error
+import requests
 import semver
 
 from marshmallow import Schema, fields
@@ -318,6 +319,99 @@ class Job(RestModel):  # noqa,pylint:disable=too-many-public-methods,too-many-in
         :type value: Project
         """
         self._project = value
+
+    _ancestor_job = None
+
+    @property
+    def ancestor_job(self):
+        """ Ancestor associated with this job
+
+        :return Job: Loaded from detail URL
+        :return None: No ancestor associated
+
+        :raise AssertionError: Response code unexpected
+        """
+
+        if (
+            self._ancestor_job is None and
+            self.ancestor_detail is not None
+        ):
+            self._ancestor_job = Job.load_url(
+                self.ancestor_detail
+            )
+
+        return self._ancestor_job
+
+    @ancestor_job.setter
+    def ancestor_job(self, value):
+        """ Set the ``ancestor_job`` cache
+
+        :param value: Ancestor associated with this job
+        :type value: Job
+        """
+        self._ancestor_job = value
+
+    def resolve_job_ancestor(self, repo):
+        closest = self.closest_job_ref(repo)
+        if closest is None:
+            return None
+
+        response = requests.get(
+            '%s/jobs' % self.project.url,
+            params={'commit': closest.hex, 'per_page': 2},
+        )
+        assert response.status_code == 200
+            i = response.json()['items']
+            if i[0]['slug'] == self.slug:
+                try:
+                    d = i[1]['detail']
+                except IndexError:
+                    pass  # XXX next closest
+            else:
+                d = i[0]['detail']
+            self.ancestor_job = Job.load_url(d)
+
+    def closest_job_ref(self, repo):
+        closest = None
+        if self.git_branch is not None and self.git_branch != 'master':
+            closest = self.closest_ref(repo, self.project.filtered_commit_refs(
+                {'completed': True, 'branch': self.git_branch},
+                repo
+            ))
+        if closest is None:
+            closest = self.closest_ref(repo, self.project.filtered_commit_refs(
+                {'completed': True, 'branch': master},
+                repo
+            ))
+
+        return closest
+
+    def closest_ref(self, repo, refs):
+        local = repo[self.commit]
+        ab = {
+            ref: repo.ahead_behind(local.hex, ref.hex)
+            for ref in refs
+        }
+        print({r.hex: a for r, a in ab.items()})
+        ab = {
+            key: ahead
+            for key, (ahead, behind) in ab.items()
+            if behind == 0
+        }
+
+        min_ahead = None
+        closest = None
+        for ref, ahead in ab.items():
+            if (
+                min_ahead is None or
+                ahead < min_ahead or
+                (ahead == min_ahead and closest.commit_time < ref.commit_time)
+            ):
+                min_ahead = ahead
+                closest = ref
+        print(closest.hex)
+
+        return closest
 
     _job_config = None
 
