@@ -1,18 +1,17 @@
 """ Preparation for the main job stages """
 
+import datetime
 import glob
 import json
 import subprocess
 
-from datetime import datetime
 from itertools import chain
 
 import py.error  # pylint:disable=import-error
 import py.path  # pylint:disable=import-error
 import pygit2
 
-from dockci.models.job_meta.config import JobConfig
-from dockci.models.job_meta.stages import CommandJobStage, JobStageBase
+from dockci.models.job_meta.stages import JobStageBase
 from dockci.util import (git_head_ref_name,
                          path_contained,
                          write_all,
@@ -174,7 +173,7 @@ class GitInfoStage(JobStageBase):
         return True
 
 
-class GitChangesStage(CommandJobStage):
+class GitChangesStage(JobStageBase):
     """
     Get a list of changes from git between now and the most recently built
     ancestor
@@ -183,21 +182,51 @@ class GitChangesStage(CommandJobStage):
     slug = 'git_changes'
 
     def __init__(self, job, workdir):
-        super(GitChangesStage, self).__init__(job, workdir, None)
+        super(GitChangesStage, self).__init__(job)
+        self.workdir = workdir
 
     def runnable(self, handle):
-        if self.job.ancestor_job:
-            revision_range_string = '%s..%s' % (
-                self.job.ancestor_job.commit,
-                self.job.commit,
-            )
+        job = self.job
+        if job.ancestor_job:
+            repo = pygit2.Repository(self.workdir.join('.git').strpath)
+            walker = repo.walk(repo.head.target, pygit2.GIT_SORT_TIME)   # noqa pylint:disable=no-member
 
-            self.cmd_args = [
-                'git',
-                '-c', 'color.ui=always',
-                'log', revision_range_string
-            ]
-            return super(GitChangesStage, self).runnable(handle)
+            for commit in walker:
+                if commit.hex.startswith(job.ancestor_job.commit):
+                    break
+
+                handle.write('Commit: %s\n' % commit.hex)
+
+                if len(commit.parent_ids) > 1:
+                    handle.write('Merge:  %s\n' % (
+                        ' '.join((str(i) for i in commit.parent_ids)),
+                    ))
+
+                handle.write('Author: %s <%s>\n' % (
+                    commit.author.name,
+                    commit.author.email,
+                ))
+
+                commit_tz = datetime.timezone(datetime.timedelta(
+                    minutes=commit.commit_time_offset,
+                ))
+                commit_dt = datetime.datetime.fromtimestamp(
+                    commit.commit_time, commit_tz,
+                )
+                handle.write('Date:   %s\n' % commit_dt.strftime('%c %z'))
+
+                double_nl = False
+                for line in commit.message.split('\n'):
+                    if len(line.strip()) == 0:
+                        handle.write('\n')
+                        double_nl = True
+                    else:
+                        handle.write('    %s\n' % line)
+                        double_nl = line.endswith('\n')
+
+                # Ensure blank line between commits
+                if not double_nl:
+                    handle.write('\n')
 
         return 0
 
@@ -325,7 +354,7 @@ class GitMtimeStage(JobStageBase):
             return False
 
         # User output
-        mtime = datetime.fromtimestamp(timestamp)
+        mtime = datetime.datetime.fromtimestamp(timestamp)
         write_all(handle, "%s... " % mtime.strftime('%Y-%m-%d %H:%M:%S'))
 
         # Set the time!
