@@ -4,8 +4,6 @@ Stages in a Job
 
 import logging
 import json
-import shlex
-import subprocess
 
 import requests.exceptions
 
@@ -132,70 +130,6 @@ class JobStage(JobStageBase):
     def runnable(self, *args, **kwargs):
         """ Wrapper for runnable to avoid ambiguity """
         return self._runnable(*args, **kwargs)
-
-
-class CommandJobStage(JobStageBase):  # pylint:disable=abstract-method
-    """
-    A job stage that represents a series of commands
-    """
-
-    # pylint:disable=arguments-differ
-    def __init__(self, job, workdir, cmd_args):
-        if cmd_args is not None:
-            assert len(cmd_args) > 0, "cmd_args are given"
-
-        super(CommandJobStage, self).__init__(job)
-        self.workdir = workdir
-        self.cmd_args = cmd_args
-
-    def runnable(self, handle):
-        """
-        Synchronously run one or more processes, streaming to the given
-        handle, stopping and returning the exit code if it's non-zero.
-
-        Returns 0 if all processes exit 0
-        """
-        def run_one_cmd(cmd_args_single):
-            """
-            Run a process
-            """
-            if isinstance(cmd_args_single, (tuple, list)):
-                return run_one_cmd({'command': cmd_args_single})
-
-            try:
-                display_args = cmd_args_single['display']
-            except KeyError:
-                display_args = cmd_args_single['command']
-
-            quoted_args = ' '.join((
-                shlex.quote(arg) for arg in display_args
-            ))
-            handle.write(bytes("> %s\n" % quoted_args, 'utf8'))
-            handle.flush()
-
-            proc = subprocess.Popen(cmd_args_single['command'],
-                                    cwd=self.workdir.strpath,
-                                    stdout=handle,
-                                    stderr=subprocess.STDOUT)
-            proc.wait()
-            return proc.returncode
-
-        if isinstance(self.cmd_args[0], (tuple, list, dict)):
-            first_command = True
-            for cmd_args_single in self.cmd_args:
-                if first_command:
-                    first_command = False
-                else:
-                    handle.write("\n".encode())
-
-                returncode = run_one_cmd(cmd_args_single)
-                if returncode != 0:
-                    return returncode
-
-            return 0
-
-        else:
-            return run_one_cmd(self.cmd_args)
 
 
 class DockerStage(JobStageBase):
