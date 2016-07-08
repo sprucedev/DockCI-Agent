@@ -5,6 +5,7 @@ DockCI - CI, but with that all important Docker twist
 # TODO fewer lines somehow
 # pylint:disable=too-many-lines
 
+import functools
 import logging
 import sys
 import tempfile
@@ -114,6 +115,50 @@ PUSH_REASON_MESSAGES = {
 }
 
 
+def _cmp_ahead_ref(left, right):
+    """ Compare tuples with ahead/ref, where first comparing commits ahead,
+    then commit time (where lowest is least ahead, followed by latest time)
+
+    Examples:
+
+      >>> class MockRef(object):
+      ...   def __init__(self, commit_time):
+      ...     self.commit_time = commit_time
+
+      >>> ref10 = MockRef(10)
+      >>> ref20 = MockRef(20)
+      >>> ref10b = MockRef(10)
+
+      >>> _cmp_ahead_ref((ref10, 1), (ref20, 2))
+      -1
+
+      >>> _cmp_ahead_ref((ref20, 1), (ref10, 2))
+      -1
+
+      >>> _cmp_ahead_ref((ref10, 2), (ref20, 1))
+      1
+
+      >>> _cmp_ahead_ref((ref10, 2), (ref10b, 1))
+      1
+
+      >>> _cmp_ahead_ref((ref10, 1), (ref10b, 1))
+      0
+    """
+    left_ref, left_ahead = left
+    right_ref, right_ahead = right
+    if left_ahead < right_ahead:
+        return -1
+    if left_ahead > right_ahead:
+        return 1
+    if left_ref.commit_time > right_ref.commit_time:
+        return -1
+
+    return 0
+
+
+ahead_ref_keyfunc = functools.cmp_to_key(_cmp_ahead_ref)  # noqa pylint:disable=invalid-name
+
+
 class JobStageTmpSchema(Schema):
     """ Schema for loading and saving ``JobStageTmp`` models """
     success = fields.Bool(default=None, allow_none=True)
@@ -215,6 +260,7 @@ class JobSchema(Schema):
     git_author_email = fields.Str(default=None, allow_none=True)
     git_committer_name = fields.Str(default=None, allow_none=True)
     git_committer_email = fields.Str(default=None, allow_none=True)
+    ancestor_detail = fields.Str(default=None, allow_none=True, load_only=True)
 
 
 class Job(RestModel):  # noqa,pylint:disable=too-many-public-methods,too-many-instance-attributes
@@ -241,6 +287,7 @@ class Job(RestModel):  # noqa,pylint:disable=too-many-public-methods,too-many-in
     git_author_email = None
     git_committer_name = None
     git_committer_email = None
+    ancestor_detail = None
 
     @classmethod
     def url_for(cls, project_slug, job_slug):  # noqa,pylint:disable=arguments-differ
@@ -352,66 +399,90 @@ class Job(RestModel):  # noqa,pylint:disable=too-many-public-methods,too-many-in
         self._ancestor_job = value
 
     def resolve_job_ancestor(self, repo):
-        closest = self.closest_job_ref(repo)
-        if closest is None:
-            return None
+        """ Find, and set the ancestor job for this job
 
-        response = requests.get(
-            '%s/jobs' % self.project.url,
-            params={'commit': closest.hex, 'per_page': 2},
-        )
-        assert response.status_code == 200
-            i = response.json()['items']
-            if i[0]['slug'] == self.slug:
+        :param repo: Git repo to get ref objects from
+        :type repo: pygit2.Repository
+        """
+        refs = self.closest_job_refs(repo)
+        if len(refs) == 0:
+            return
+
+        self.ancestor_job = None
+        for ref in refs:
+            response = requests.get(
+                '%s/jobs' % self.project.url,
+                params={'commit': ref.hex, 'per_page': 2},
+            )
+            assert response.status_code == 200
+            jobs_data = response.json()['items']
+
+            if jobs_data[0]['slug'] == self.slug:
                 try:
-                    d = i[1]['detail']
+                    detail_url = jobs_data[1]['detail']
                 except IndexError:
-                    pass  # XXX next closest
+                    continue
+
             else:
-                d = i[0]['detail']
-            self.ancestor_job = Job.load_url(d)
+                detail_url = jobs_data[0]['detail']
 
-    def closest_job_ref(self, repo):
-        closest = None
+            self.ancestor_job = Job.load_url(detail_url)
+            return
+
+    def closest_job_refs(self, repo):
+        """ Get a list of refs, sorted by closeness behind the current commit
+        (see ``refs_sort_closeness``), first from the current branch (if it
+        exists), then from master.
+
+        :param repo: Git repo to get ref objects from
+        :type repo: pygit2.Repository
+
+        :return list: sorted refs
+        """
+        refs = self.refs_sort_closeness(
+            self.project.filtered_commit_refs(
+                {'completed': True, 'branch': 'master'},
+                repo,
+            ),
+            repo,
+        )
         if self.git_branch is not None and self.git_branch != 'master':
-            closest = self.closest_ref(repo, self.project.filtered_commit_refs(
-                {'completed': True, 'branch': self.git_branch},
-                repo
-            ))
-        if closest is None:
-            closest = self.closest_ref(repo, self.project.filtered_commit_refs(
-                {'completed': True, 'branch': master},
-                repo
-            ))
+            refs = self.refs_sort_closeness(
+                self.project.filtered_commit_refs(
+                    {'completed': True, 'branch': self.git_branch},
+                    repo,
+                ),
+                repo,
+            ) + refs
 
-        return closest
+        return refs
 
-    def closest_ref(self, repo, refs):
+    def refs_sort_closeness(self, refs, repo):
+        """ Sort refs list by closeness behind the current commit, ignoring any
+        that are ahead.
+
+        :param refs: List of refs to sort
+        :type refs: iterable
+        :param repo: Git repo the ref objects are from
+        :type repo: pygit2.Repository
+
+        :return list: sorted refs
+        """
         local = repo[self.commit]
-        ab = {
+        refs_distances = {
             ref: repo.ahead_behind(local.hex, ref.hex)
             for ref in refs
         }
-        print({r.hex: a for r, a in ab.items()})
-        ab = {
+        refs_distances = {
             key: ahead
-            for key, (ahead, behind) in ab.items()
+            for key, (ahead, behind) in refs_distances.items()
             if behind == 0
         }
 
-        min_ahead = None
-        closest = None
-        for ref, ahead in ab.items():
-            if (
-                min_ahead is None or
-                ahead < min_ahead or
-                (ahead == min_ahead and closest.commit_time < ref.commit_time)
-            ):
-                min_ahead = ahead
-                closest = ref
-        print(closest.hex)
-
-        return closest
+        return [
+            ref for ref, ahead in
+            sorted(refs_distances.items(), key=ahead_ref_keyfunc)
+        ]
 
     _job_config = None
 
@@ -422,7 +493,7 @@ class Job(RestModel):  # noqa,pylint:disable=too-many-public-methods,too-many-in
             self._job_config = JobConfig(job=self)
         return self._job_config
 
-    def changed_result(self, workdir=None):
+    def changed_result(self):
         """
         Check if this job changed the result from it's ancestor. None if
         there's no result yet
@@ -430,22 +501,10 @@ class Job(RestModel):  # noqa,pylint:disable=too-many-public-methods,too-many-in
         if self.result is None:
             return None
 
-        ancestor_job = self.ancestor_job
-        if not ancestor_job:
+        if not self.ancestor_job:
             return True
 
-        if ancestor_job.result is None:
-            if workdir is None:  # Can't get a better ancestor
-                return True
-
-            ancestor_job = self.project.latest_job_ancestor(
-                workdir, self.commit, complete=True,
-            )
-
-        if not ancestor_job:
-            return True
-
-        return ancestor_job.result != self.result
+        return self.ancestor_job.result != self.result
 
     _docker_client = None
 
