@@ -191,9 +191,12 @@ class GitChangesStage(JobStageBase):
             repo = pygit2.Repository(self.workdir.join('.git').strpath)
             walker = repo.walk(repo.head.target, pygit2.GIT_SORT_TIME)   # noqa pylint:disable=no-member
 
+            at_least_one = False
             for commit in walker:
                 if commit.hex.startswith(job.ancestor_job.commit):
                     break
+
+                at_least_one = True
 
                 handle.write('Commit: %s\n' % commit.hex)
 
@@ -227,6 +230,9 @@ class GitChangesStage(JobStageBase):
                 # Ensure blank line between commits
                 if not double_nl:
                     handle.write('\n')
+
+            if not at_least_one:
+                handle.write('No changes')
 
         return 0
 
