@@ -183,24 +183,20 @@ class GitChangesStage(CommandJobStage):
     slug = 'git_changes'
 
     def __init__(self, job, workdir):
-        cmd_args = None
-        if job.ancestor_job is not None:
+        super(GitChangesStage, self).__init__(job, workdir, None)
+
+    def runnable(self, handle):
+        if self.job.ancestor_job:
             revision_range_string = '%s..%s' % (
-                job.ancestor_job.commit,  # pylint:disable=no-member
-                job.commit,
+                self.job.ancestor_job.commit,
+                self.job.commit,
             )
 
-            cmd_args = [
+            self.cmd_args = [
                 'git',
                 '-c', 'color.ui=always',
                 'log', revision_range_string
             ]
-        super(GitChangesStage, self).__init__(job, workdir, cmd_args)
-
-    def runnable(self, handle):
-        # TODO fix YAML model to return None rather than an empty model so that
-        #      if self.ancestor_job will work
-        if self.cmd_args:
             return super(GitChangesStage, self).runnable(handle)
 
         return 0

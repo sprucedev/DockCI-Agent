@@ -32,7 +32,8 @@ from .job_meta.stages_post import (PushStage,
                                    FetchStage,
                                    CleanupStage,
                                    )
-from .job_meta.stages_prepare import (GitInfoStage,
+from .job_meta.stages_prepare import (GitChangesStage,
+                                      GitInfoStage,
                                       GitMtimeStage,
                                       TagVersionStage,
                                       WorkdirStage,
@@ -943,7 +944,7 @@ class Job(RestModel):  # noqa,pylint:disable=too-many-public-methods,too-many-in
             for stage in [
                 WorkdirStage(self, workdir),
                 GitInfoStage(self, workdir),
-                # GitChangesStage(self, workdir),
+                GitChangesStage(self, workdir),
                 GitMtimeStage(self, workdir),
                 TagVersionStage(self, workdir),
                 PushPrepStage(self),
@@ -997,7 +998,7 @@ class Job(RestModel):  # noqa,pylint:disable=too-many-public-methods,too-many-in
 
             prepare = (stage() for stage in chain(
                 (
-                    # lambda: self._stage_objects['git_changes'].run(0),
+                    lambda: self._stage_objects['git_changes'].run(0),
                     lambda: self._stage_objects['git_mtime'].run(None),
                     tag_stage,
                     push_prep_stage,
