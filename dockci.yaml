@@ -12,5 +12,5 @@ utilities:
         pip3 wheel -r test-requirements.txt
       '
     output:
-      - from: /work/wheelhouse
-        to: util
+      - from: /work/
+        to: util/wheelhouse
