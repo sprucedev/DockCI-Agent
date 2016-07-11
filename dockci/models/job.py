@@ -953,7 +953,7 @@ class Job(RestModel):  # noqa,pylint:disable=too-many-public-methods,too-many-in
                 BuildStage(self, workdir),
                 TestStage(self),
                 PushStage(self),
-                FetchStage(self),
+                # FetchStage(self),
                 CleanupStage(self),
             ]
         }
@@ -1035,7 +1035,7 @@ class Job(RestModel):  # noqa,pylint:disable=too-many-public-methods,too-many-in
 
             # Failing this doesn't indicate job failure
             # TODO what kind of a failure would this not working be?
-            self._stage_objects['docker_fetch'].run(None)
+            # self._stage_objects['docker_fetch'].run(None)
 
             return True
         except Exception:  # pylint:disable=broad-except
