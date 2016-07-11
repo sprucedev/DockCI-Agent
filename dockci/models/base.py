@@ -69,7 +69,7 @@ class RegexField(fields.Str):
           >>> RegexField()._deserialize('(', None, None)
           Traceback (most recent call last):
           ...
-          marshmallow.exceptions.ValidationError: unbalanced parenthesis
+          marshmallow.exceptions.ValidationError: missing )...
         """
         if value is None:
             return None
@@ -92,7 +92,7 @@ class RegexField(fields.Str):
           >>> RegexField()._validate('(')
           Traceback (most recent call last):
           ...
-          marshmallow.exceptions.ValidationError: unbalanced parenthesis
+          marshmallow.exceptions.ValidationError: missing )...
         """
         super(RegexField, self)._validate(value)
         if value is None:
