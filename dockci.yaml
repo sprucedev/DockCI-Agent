@@ -1,16 +1,15 @@
 dockerfile: dockci.Dockerfile
 utilities:
-  - name: python3-4-wheels-debian
+  - name: python3-4-wheels-alpine
     input:
       - requirements.txt /work/requirements.txt
       - test-requirements.txt /work/test-requirements.txt
     command: |-
       sh -c '
-        apt-get update &&
-        apt-get install -y libffi-dev libgit2-dev &&
-        pip install cffi &&
-        pip wheel -r requirements.txt &&
-        pip wheel -r test-requirements.txt
+        apk add --no-cache libffi-dev libgit2-dev &&
+        pip3 install cffi &&
+        pip3 wheel -r requirements.txt &&
+        pip3 wheel -r test-requirements.txt
       '
     output:
       - from: /work/wheelhouse
