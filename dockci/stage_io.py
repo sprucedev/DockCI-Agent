@@ -38,11 +38,12 @@ class StageIO(RawIOBase):
 
     >>> from dockci.models.project import Project
     >>> from dockci.models.job import Job
-    >>> from dockci.models.job_meta.stages_main import ExternalStatusStage
+    >>> from dockci.models.job_meta.stages import JobStageBase
 
     >>> project = Project(slug='testproj')
     >>> job = Job(id=0x2a, project=project)
-    >>> stage = ExternalStatusStage(job, 'test')
+    >>> stage = JobStageBase(job)
+    >>> stage.slug = 'test'
 
     >>> StageIO(stage, redis_pool=None, pika_conn='not none')
     Traceback (most recent call last):
@@ -157,11 +158,12 @@ class StageIO(RawIOBase):
 
         >>> from dockci.models.project import Project
         >>> from dockci.models.job import Job
-        >>> from dockci.models.job_meta.stages_main import ExternalStatusStage
+        >>> from dockci.models.job_meta.stages import JobStageBase
 
         >>> project = Project(slug='testproj')
-        >>> job = Job(id=0x2a, project=project)
-        >>> stage = ExternalStatusStage(job, 'test')
+        >>> job = Job(slug='2a', project=project)
+        >>> stage = JobStageBase(job)
+        >>> stage.slug = 'test'
 
         >>> StageIO(stage, redis_pool='test', pika_conn='test')
         <StageIO: project=testproj, job=...2a, stage=...test>
