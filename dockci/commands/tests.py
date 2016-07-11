@@ -28,7 +28,7 @@ def unittest_():
     import pytest
 
     tests_dir = project_root().join('tests')
-    if not pytest.main(['--doctest-modules', '-vvrxs', tests_dir.strpath]):
+    if pytest.main(['--doctest-modules', '-vvrxs', tests_dir.strpath]) != 0:
         raise click.Abort()
 
 
@@ -43,7 +43,7 @@ def doctest_():
     import pytest
 
     tests_dir = project_root().join('dockci')
-    if not pytest.main(['--doctest-modules', '-vvrxs', tests_dir.strpath]):
+    if pytest.main(['--doctest-modules', '-vvrxs', tests_dir.strpath]) != 0:
         raise click.Abort()
 
 
