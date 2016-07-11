@@ -1,7 +1,7 @@
 FROM alpine:3.4
 
 RUN apk add --no-cache \
-        bash libffi libgit2 python3
+        bash libffi libgit2 git python3
 RUN pip3 install wheel virtualenv
 
 RUN mkdir -p /code/data

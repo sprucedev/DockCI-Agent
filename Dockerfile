@@ -4,7 +4,7 @@ ENV DEBIAN_FRONTEND noninteractive
 RUN apk add --no-cache \
         libffi-dev libgit2-dev \
         bash python3 python3-dev
-RUN apk add --no-cache gcc musl-dev
+RUN apk add --no-cache gcc musl-dev git
 RUN pip3 install wheel virtualenv
 
 RUN mkdir -p /code/data
