@@ -99,14 +99,14 @@ class JobConfig(BaseModel):
     job = None
 
     job_output = None
-    services = None
-    utilities = None
     dockerfile = 'Dockerfile'
     skip_tests = False
 
     _repo_name = None
 
     def __init__(self, **kwargs):
+        self.services = []
+        self.utilities = []
         self.set_all(**self.SCHEMA.load({}).data)
         super(JobConfig, self).__init__(**kwargs)
 

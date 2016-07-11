@@ -29,7 +29,7 @@ from .job_meta.stages_main import (BuildStage,
                                    TestStage,
                                    )
 from .job_meta.stages_post import (PushStage,
-                                   FetchStage,
+                                   # FetchStage,
                                    CleanupStage,
                                    )
 from .job_meta.stages_prepare import (GitChangesStage,
@@ -203,6 +203,7 @@ class JobStageTmp(RestModel):
     @property
     def url(self):
         """ URL for this stage """
+        # pylint:disable=no-member
         return JobStageTmp.url_for(
             self.job.project.slug, self.job.slug, self.slug,
         )
@@ -218,6 +219,9 @@ class JobStageTmp(RestModel):
 
         :raise AssertionError: Response code unexpected
         """
+        # help pylint understand our return value
+        if False:   # pylint:disable=using-constant-test
+            return Job()
 
         if (
             self._job is None and
@@ -572,6 +576,7 @@ class Job(RestModel):  # noqa,pylint:disable=too-many-public-methods,too-many-in
     @property
     def _tag_without_v(self):
         """ Job commit's tag with any v prefix dropped """
+        # pylint:disable=unsubscriptable-object
         if self.tag[0] == 'v':
             return self.tag[1:]
         else:
@@ -879,6 +884,7 @@ class Job(RestModel):  # noqa,pylint:disable=too-many-public-methods,too-many-in
         >>> Job._pushable_message_for({'something dumb'})
         'Unknown'
         """
+        # pylint:disable=unsupported-membership-test
         p_reasons = sorted([PUSH_REASON_MESSAGES[rea]
                             for rea in reasons
                             if rea in PushableReasons])

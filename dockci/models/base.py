@@ -209,6 +209,7 @@ class RestModel(BaseModel):
 
         data = kwargs.copy()
         data.update(response.json())
+        # pylint:disable=no-member
         return cls(_new=False, **cls.SCHEMA.load(data).data)
 
     def save(self):
@@ -714,7 +715,8 @@ class ServiceBase(object):
         if lookup_allow is None:
             lookup_allow = defaultdict(lambda: True)
 
-        if False:  # help pylint understand our return value
+        # help pylint understand our return value
+        if False:   # pylint:disable=using-constant-test
             return AuthenticatedRegistry()
 
         if self.auth_registry_raw is not None:
@@ -827,7 +829,8 @@ class ServiceBase(object):
         """ Dynamically get the project from other values """
         from dockci.models.project import Project
 
-        if False:  # help pylint understand our return value
+        # help pylint understand our return value
+        if False:  # pylint:disable=using-constant-test
             return Project()
 
         if lookup_allow is None:

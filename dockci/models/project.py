@@ -8,9 +8,9 @@ import requests
 
 from marshmallow import Schema, fields
 
+from dockci.server import CONFIG
 from .auth import AuthenticatedRegistry
 from .base import RegexField, RestModel
-from dockci.server import CONFIG
 
 
 DOCKER_REPO_RE = re.compile(r'[a-z0-9-_.]+')

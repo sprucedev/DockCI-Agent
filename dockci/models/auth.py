@@ -3,8 +3,8 @@ Users and permissions models
 """
 from marshmallow import Schema, fields
 
-from .base import RestModel
 from dockci.server import CONFIG
+from .base import RestModel
 
 
 class AuthenticatedRegistrySchema(Schema):

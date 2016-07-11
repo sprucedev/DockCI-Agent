@@ -98,7 +98,7 @@ class Consumer(object):
                 yield from asyncio.sleep(RECONNECT_TIMER)
 
         self._init_future = None
-        asyncio.async(self._rmq_consume(channel))
+        asyncio.ensure_future(self._rmq_consume(channel))
 
     @asyncio.coroutine
     def _on_connect_error(self, err):
@@ -110,7 +110,7 @@ class Consumer(object):
 
         if self._init_future is None:
             self._init_future = self._rmq_init()
-            asyncio.async(self._init_future)
+            asyncio.ensure_future(self._init_future)
 
     @asyncio.coroutine
     def _rmq_consume(self, channel):
@@ -129,7 +129,7 @@ class Consumer(object):
                 channel, body, envelope, properties,
             )
         finally:
-            asyncio.async(self._rmq_consume(channel))
+            asyncio.ensure_future(self._rmq_consume(channel))
 
     @asyncio.coroutine
     def _process_message(self, channel, body, envelope, _):
