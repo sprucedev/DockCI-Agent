@@ -87,9 +87,9 @@ def init_config():
         'RABBITMQ_QUEUE', 'dockci.agent')
 
     CONFIG.redis_host = os.environ.get(
-        'REDIS_PORT_6379_ADDR', 'localhost')
+        'REDIS_PORT_6379_TCP_ADDR', 'localhost')
     CONFIG.redis_port = int(os.environ.get(
-        'REDIS_PORT_6379_PORT', 6379))
+        'REDIS_PORT_6379_TCP_PORT', 6379))
 
     CONFIG.redis_len_expire = 60 * 60  # 1hr
 
