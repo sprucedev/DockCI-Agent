@@ -121,8 +121,8 @@ class JobConfig(BaseModel):
           >>> JobConfig(repo_name='testr').repo_name
           'testr'
 
-          from ..job import Job
-          from ..project import Project
+          >>> from ..job import Job
+          >>> from ..project import Project
           >>> proj = Project(slug='testp')
           >>> job = Job(project=proj)
           >>> conf = JobConfig(job=job)
