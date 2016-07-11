@@ -238,12 +238,11 @@ class Project(RestModel):
 
         :raise AssertionError: Response code unexpected
         """
-        refs = [
-            repo[ref_hash]
+        return [ref for ref in (
+            repo.get(ref_hash)
             for ref_hash
             in self.filtered_commits(filters)
-        ]
-        return refs
+        ) if ref is not None]
 
     def filtered_commits(self, filters):
         """ Get commits hash list for this project
