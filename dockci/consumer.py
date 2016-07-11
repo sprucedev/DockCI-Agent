@@ -1,6 +1,7 @@
 """ Setup and run the DockCI agent consumer """
 import asyncio
 import json
+import signal
 
 from concurrent import futures
 
@@ -24,14 +25,30 @@ class Consumer(object):
         self._logger = logger
         self._transport = None
         self._init_future = None
+        self._job_event = asyncio.Event()
+        self._shutting_down = False
 
     def run(self):
         """ Connect and run the event loop """
         loop = asyncio.get_event_loop()
         loop.set_default_executor(futures.ProcessPoolExecutor(max_workers=1))
         self._init_future = self._rmq_init()
+        loop.add_signal_handler(signal.SIGINT, self.shutdown)
+        loop.add_signal_handler(signal.SIGTERM, self.shutdown)
         loop.run_until_complete(self._init_future)
         loop.run_forever()
+
+    def shutdown(self):
+        """ Perform a graceful shutdown """
+        asyncio.ensure_future(self._shutdown_coro())
+
+    @asyncio.coroutine
+    def _shutdown_coro(self):
+        """ Shutdown when there is no job running """
+        self._logger.info('Shutting down after job completes')
+        self._job_event.wait()
+        self._logger.info('Shutting down now')
+        asyncio.get_event_loop().stop()
 
     @asyncio.coroutine
     def _rmq_init(self):
@@ -152,6 +169,7 @@ class Consumer(object):
             )
 
         else:
+            self._job_event.set()
             self._logger.info('Acknowleding message')
             yield from channel.basic_client_ack(
                 delivery_tag=envelope.delivery_tag,
@@ -163,3 +181,4 @@ class Consumer(object):
             )
 
             self._logger.info('Job completed')
+            self._job_event.clear()
