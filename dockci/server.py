@@ -34,7 +34,11 @@ class Config(object):  # pylint:disable=too-many-instance-attributes
         return context.obj
 
     def __getattr__(self, name):
-        return self.config_dict[name]
+        try:
+            return self.config_dict[name]
+        except KeyError:
+            if name.startswith('__') and name.endswith('__'):
+                raise AttributeError()
 
     def __setattr__(self, name, value):
         self.config_dict[name] = value
