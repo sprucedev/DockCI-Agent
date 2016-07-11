@@ -16,12 +16,12 @@ marshmallow==2.7.3
 pika==0.10.0
 py==1.4.30
 pycparser==2.14           # via cffi
-pygit2==0.21.1
+pygit2==0.24.1
 python-redis-lock==2.3.0
 PyYAML==3.11
 redis==2.10.5
 requests==2.9.1           # via docker-py, rollbar
 rollbar==0.11.0
 semver==2.2.1
-six==1.10.0               # via bcrypt, docker-py, rollbar, websocket-client
+six==1.10.0               # via bcrypt, docker-py, pygit2, rollbar, websocket-client
 websocket-client==0.35.0  # via docker-py

@@ -1,12 +1,8 @@
-FROM debian:jessie
+FROM alpine:3.4
 
-ENV DEBIAN_FRONTEND noninteractive
-RUN apt-get update && apt-get install -y \
-        git libffi6 libgit2-21 locales python3 python3-setuptools
-RUN easy_install3 pip wheel virtualenv
-
-RUN echo 'en_AU.UTF-8 UTF-8' > /etc/locale.gen && locale-gen && update-locale LANG=en_AU.UTF-8
-ENV LANG en_AU.UTF-8
+RUN apk add --no-cache \
+        bash libffi libgit2 python3
+RUN pip3 install wheel virtualenv
 
 RUN mkdir -p /code/data
 WORKDIR /code
