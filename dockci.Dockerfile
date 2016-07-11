@@ -9,7 +9,7 @@ WORKDIR /code
 
 ADD requirements.txt /code/requirements.txt
 ADD test-requirements.txt /code/test-requirements.txt
-ADD util/wheelhouse /code/wheelhouse
+ADD util/wheelhouse/work /code/wheelhouse
 ADD _deps_python.sh /code/_deps_python.sh
 RUN ./_deps_python.sh
 
