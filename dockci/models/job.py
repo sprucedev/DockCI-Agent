@@ -16,7 +16,6 @@ from itertools import chain
 
 import docker
 import py.path  # pylint:disable=import-error
-import requests
 import semver
 
 from marshmallow import Schema, fields

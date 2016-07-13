@@ -4,8 +4,6 @@ import re
 
 from urllib.parse import quote_plus
 
-import requests
-
 from marshmallow import Schema, fields
 
 from dockci.server import CONFIG
