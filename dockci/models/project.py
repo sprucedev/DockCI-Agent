@@ -4,13 +4,11 @@ import re
 
 from urllib.parse import quote_plus
 
-import requests
-
 from marshmallow import Schema, fields
 
 from dockci.server import CONFIG
 from .auth import AuthenticatedRegistry
-from .base import RegexField, RestModel
+from .base import RegexField, request, RestModel
 
 
 DOCKER_REPO_RE = re.compile(r'[a-z0-9-_.]+')
@@ -211,8 +209,8 @@ class Project(RestModel):
         :raise AssertionError: Response code unexpected
         """
         from .job import Job
-        response = requests.get(
-            '%s/jobs' % self.url,
+        response = request(
+            'GET', '%s/jobs' % self.url,
             params=dict(
                 per_page=1,
                 versioned=versioned,
@@ -254,8 +252,8 @@ class Project(RestModel):
 
         :raise AssertionError: Response code unexpected
         """
-        response = requests.get(
-            '%s/jobs/commits' % self.url,
+        response = request(
+            'GET', '%s/jobs/commits' % self.url,
             params=filters,
         )
         assert response.status_code == 200

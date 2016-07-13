@@ -16,12 +16,11 @@ from itertools import chain
 
 import docker
 import py.path  # pylint:disable=import-error
-import requests
 import semver
 
 from marshmallow import Schema, fields
 
-from .base import DateTimeOrNow, RestModel, ServiceBase
+from .base import DateTimeOrNow, RestModel, request, ServiceBase
 from .project import Project
 from .job_meta.config import JobConfig
 from .job_meta.stages import JobStage
@@ -415,8 +414,8 @@ class Job(RestModel):  # noqa,pylint:disable=too-many-public-methods,too-many-in
 
         self.ancestor_job = None
         for ref in refs:
-            response = requests.get(
-                '%s/jobs' % self.project.url,
+            response = request(
+                'GET', '%s/jobs' % self.project.url,
                 params={'commit': ref.hex, 'per_page': 2},
             )
             assert response.status_code == 200

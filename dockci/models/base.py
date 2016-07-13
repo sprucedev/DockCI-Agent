@@ -166,6 +166,31 @@ class BaseModel(object):
         raise NotImplementedError("Must override 'SCHEMA' attribute")
 
 
+def request(
+    method,
+    url,
+    params=None,
+    data=None,
+    json=None,
+    headers=None,
+):
+    """ Wrapper around ``requests.request`` to add auth to
+    everything by default """
+    if headers is None:
+        headers = {}
+
+    final_headers = {'x-dockci-api-key': CONFIG.api_key}
+    final_headers.update(headers)
+
+    return requests.request(
+        method, url,
+        params=params,
+        data=data,
+        json=json,
+        headers=final_headers,
+    )
+
+
 class RestModel(BaseModel):
     """ Base model for RESTful loading of data """
     _new = True
@@ -197,10 +222,7 @@ class RestModel(BaseModel):
 
         logging.debug('Loading %s', url)
 
-        response = requests.get(
-            url,
-            headers={'x-dockci-api-key': CONFIG.api_key},
-        )
+        response = request('GET', url)
 
         if response.status_code == 404:
             return None
@@ -234,13 +256,9 @@ class RestModel(BaseModel):
 
         logging.warning('Saving %s with %s to %s', self, data, url)
 
-        method = requests.put if self.is_new else requests.patch
+        method = 'PUT' if self.is_new else 'PATCH'
 
-        response = method(
-            url,
-            json=data,
-            headers={'x-dockci-api-key': CONFIG.api_key},
-        )
+        response = request(method, url, json=data)
 
         # XXX not an assert
         assert response.status_code >= 200 and response.status_code < 300, (
