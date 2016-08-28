@@ -11,34 +11,10 @@ from aiohttp import web
 from marshmallow.exceptions import ValidationError
 
 from .models.parallel import ShardDetail
+from .util import all_attrs_filled
 
 
 WAIT_TIMEOUT = 60 * 10
-
-
-def all_attrs_filled(model):
-    """
-    Check if all declared attributes on a model are filled
-
-    Examples:
-
-    >>> all_attrs_filled(ShardDetail())
-    False
-
-    >>> all_attrs_filled(ShardDetail(image_id='a'))
-    False
-
-    >>> all_attrs_filled(ShardDetail(
-    ...   image_id='a', image_detail='b', next_detail='c',
-    ... ))
-    True
-    """
-    for attr in model.SCHEMA.declared_fields.keys():
-        if getattr(model, attr) is None:
-            break
-    else:
-        return True
-    return False
 
 
 async def resource_wait(key, resources, handlers):
