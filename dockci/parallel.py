@@ -5,10 +5,62 @@ import asyncio
 import concurrent
 import json
 
+from urllib.parse import parse_qs
+
 from aiohttp import web
 from marshmallow.exceptions import ValidationError
 
 from .models.parallel import ShardDetail
+
+
+WAIT_TIMEOUT = 60 * 10
+
+
+def all_attrs_filled(model):
+    """
+    Check if all declared attributes on a model are filled
+
+    Examples:
+
+    >>> all_attrs_filled(ShardDetail())
+    False
+
+    >>> all_attrs_filled(ShardDetail(image_id='a'))
+    False
+
+    >>> all_attrs_filled(ShardDetail(
+    ...   image_id='a', image_detail='b', next_detail='c',
+    ... ))
+    True
+    """
+    for attr in model.SCHEMA.declared_fields.keys():
+        if getattr(model, attr) is None:
+            break
+    else:
+        return True
+    return False
+
+
+async def resource_wait(key, resources, handlers):
+    """
+    Return ``resources[key]``, waiting for ``Event`` ``handlers[key]``
+    to be fired when ready if not found
+    """
+    try:
+        resource = resources[key]
+    except KeyError:
+        pass
+    else:
+        if all_attrs_filled(resource):
+            return resource
+
+    handler = handlers.setdefault(key, asyncio.Event())
+    try:
+        await asyncio.wait_for(handler.wait(), WAIT_TIMEOUT)
+    except concurrent.futures.TimeoutError:
+        return None
+
+    return resources[key]
 
 
 class ParallelTestController(object):
@@ -20,6 +72,7 @@ class ParallelTestController(object):
     def __init__(self, logger):
         self._logger = logger
         self._shard_details = {}
+        self._shard_details_handlers = {}
 
         self.app = web.Application()
 
@@ -53,10 +106,21 @@ class ParallelTestController(object):
     async def handle_get_shard_detail(self, request):
         """ Get request detail for pulling an image """
         params = request.match_info
+        qs_args = parse_qs(request.query_string, keep_blank_values=True)
 
-        shard_detail = self._shard_details.get(params['id'], None)
-        if shard_detail is None:
-            return web.Response(status=404)
+        if 'wait' in qs_args:
+            shard_detail = await resource_wait(
+                params['id'],
+                self._shard_details,
+                self._shard_details_handlers,
+            )
+            if shard_detail is None:
+                return web.Response(status=404)
+        else:
+            try:
+                shard_detail = self._shard_details[params['id']]
+            except KeyError:
+                return web.Response(status=404)
 
         return web.Response(
             body=json.dumps(
@@ -83,6 +147,11 @@ class ParallelTestController(object):
             return web.Response(body=json.dumps(ex.messages), status=400)
 
         shard_detail.set_all(**shard_detail_data)
+
+        # Trigger anyone waiting on the full details
+        handler = self._shard_details_handlers.get(params['id'], None)
+        if handler is not None and all_attrs_filled(shard_detail):
+            handler.set()
 
         return web.Response(
             body=json.dumps(
