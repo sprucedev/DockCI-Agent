@@ -25,9 +25,9 @@ class ShardDetail(BaseModel):
 
 class TestShardMessageSchema(Schema):
     """ Schema for loading and saving ``TestShardMessage`` models """
-    shard_detail = fields.Str()
-    project_slug = fields.Str()
-    job_slug = fields.Str()
+    shard_detail = fields.Str(required=True)
+    project_slug = fields.Str(required=True)
+    job_slug = fields.Str(required=True)
 
 
 class TestShardMessage(BaseModel):
