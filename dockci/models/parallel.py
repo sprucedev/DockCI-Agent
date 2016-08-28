@@ -7,6 +7,7 @@ from .base import BaseModel
 
 class ShardDetailSchema(Schema):
     """ Schema for loading and saving ``ShardDetail`` models """
+    image_id = fields.Str(default=None, allow_none=True)
     image_detail = fields.Str(default=None, allow_none=True)
     next_detail = fields.Str(default=None, allow_none=True)
 
@@ -15,6 +16,7 @@ class ShardDetail(BaseModel):
     """ Details for how to pull an image from a ``ParallelTestController`` """
     SCHEMA = ShardDetailSchema(strict=True)
 
+    image_id = None
     image_detail = None
     next_detail = None
 
