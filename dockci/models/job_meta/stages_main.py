@@ -78,6 +78,15 @@ class TestStage(DockerStage):
 
     slug = 'docker_test'
 
+    def __init__(self, job, idx=None):
+        super(TestStage, self).__init__(job)
+        self.idx = idx
+        if idx is not None:
+            self.slug = "{class_slug}-{idx}".format(
+                class_slug=TestStage.slug,
+                idx=idx,
+            )
+
     def runnable(self, handle):
         """
         Check if we should skip tests before handing over to the
