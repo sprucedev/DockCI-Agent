@@ -6,13 +6,16 @@
 #
 
 aioamqp==0.7.0
+aiohttp==0.22.5
 bcrypt==2.0.0
 blinker==1.4
 cffi==1.6.0               # via bcrypt, pygit2
+chardet==2.3.0            # via aiohttp
 click==6.6
 docker-py==1.5.0
 hiredis==0.2.0
 marshmallow==2.7.3
+multidict==1.2.2          # via aiohttp
 pika==0.10.0
 py==1.4.30
 pycparser==2.14           # via cffi
