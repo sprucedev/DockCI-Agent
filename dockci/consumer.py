@@ -25,7 +25,7 @@ class Consumer(object):
         self._logger = logger
         self._transport = None
         self._init_future = None
-        self._job_event = asyncio.Event()
+        self._running_event = asyncio.Event()
         self._shutting_down = False
 
     def run(self):
@@ -46,7 +46,7 @@ class Consumer(object):
     def _shutdown_coro(self):
         """ Shutdown when there is no job running """
         self._logger.info('Shutting down after job completes')
-        self._job_event.wait()
+        self._running_event.wait()
         self._logger.info('Shutting down now')
         asyncio.get_event_loop().stop()
 
@@ -169,7 +169,7 @@ class Consumer(object):
             )
 
         else:
-            self._job_event.set()
+            self._running_event.set()
             self._logger.info('Acknowleding message')
             yield from channel.basic_client_ack(
                 delivery_tag=envelope.delivery_tag,
@@ -181,4 +181,4 @@ class Consumer(object):
             )
 
             self._logger.info('Job completed')
-            self._job_event.clear()
+            self._running_event.clear()
