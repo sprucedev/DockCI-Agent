@@ -16,8 +16,10 @@ from .util import all_attrs_filled
 
 WAIT_TIMEOUT = 60 * 10
 
+SHARD_DETAIL_COMPLETE_WITHOUT = ('next_detail',)
 
-async def resource_wait(key, resources, handlers):
+
+async def resource_wait(key, resources, handlers, ignore=()):
     """
     Return ``resources[key]``, waiting for ``Event`` ``handlers[key]``
     to be fired when ready if not found
@@ -27,7 +29,7 @@ async def resource_wait(key, resources, handlers):
     except KeyError:
         pass
     else:
-        if all_attrs_filled(resource):
+        if all_attrs_filled(resource, ignore=ignore):
             return resource
 
     handler = handlers.setdefault(key, asyncio.Event())
@@ -90,6 +92,7 @@ class ParallelTestController(object):
                 params['id'],
                 self._shard_details,
                 self._shard_details_handlers,
+                ignore=SHARD_DETAIL_COMPLETE_WITHOUT,
             )
             if shard_detail is None:
                 return web.Response(status=404)
@@ -127,7 +130,10 @@ class ParallelTestController(object):
 
         # Trigger anyone waiting on the full details
         handler = self._shard_details_handlers.get(params['id'], None)
-        if handler is not None and all_attrs_filled(shard_detail):
+        if handler is not None and all_attrs_filled(
+            shard_detail,
+            ignore=SHARD_DETAIL_COMPLETE_WITHOUT,
+        ):
             handler.set()
 
         return web.Response(

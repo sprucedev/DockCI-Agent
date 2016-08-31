@@ -432,25 +432,34 @@ def normalize_stream_lines(stream):
                 yield line
 
 
-def all_attrs_filled(model):
+def all_attrs_filled(model, ignore=()):
     """
     Check if all declared attributes on a model are filled
 
     Examples:
 
-    >>> all_attrs_filled(ShardDetail())
+    >>> from marshmallow import Schema, fields
+    >>> from dockci.models.base import BaseModel
+    >>> class TestSchema(Schema):
+    ...   field_a = fields.Str()
+    ...   field_b = fields.Str()
+    >>> class TestModel(BaseModel):
+    ...   SCHEMA = TestSchema()
+
+    >>> all_attrs_filled(TestModel())
     False
 
-    >>> all_attrs_filled(ShardDetail(image_id='a'))
+    >>> all_attrs_filled(TestModel(field_a='a'))
     False
 
-    >>> all_attrs_filled(ShardDetail(
-    ...   image_id='a', image_detail='b', next_detail='c',
-    ... ))
+    >>> all_attrs_filled(TestModel(field_a='a', field_b='b'))
+    True
+
+    >>> all_attrs_filled(TestModel(field_a='a'), ignore=['field_b'])
     True
     """
     for attr in model.SCHEMA.declared_fields.keys():
-        if getattr(model, attr) is None:
+        if attr not in ignore and getattr(model, attr) is None:
             break
     else:
         return True
