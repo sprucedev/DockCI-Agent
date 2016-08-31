@@ -2,10 +2,12 @@
 Functions for setting up and starting the DockCI application server
 """
 import logging
+import logging.config
 import mimetypes
 import os
 
 from contextlib import contextmanager
+from copy import deepcopy
 
 import click
 import pika
@@ -14,9 +16,23 @@ import rollbar
 
 from .util import project_root
 
-
-LOG_FORMAT = ('%(levelname) -7s %(asctime)s %(name) -10s %(funcName) '
-              '-10s %(lineno) -4d: %(message)s')
+LOGGING_CONFIG = dict(
+    version=1,
+    formatters={'default': {'format':
+        ('%(levelname) -7s %(asctime)s %(name) -10s %(funcName) -10s '
+         '%(lineno) -4d: %(message)s')
+    }},
+    handlers={'default': {
+        'class': 'logging.StreamHandler',
+        'formatter': 'default',
+        'stream': 'ext://sys.stdout',
+    }},
+    loggers={
+        'aioamqp.protocol': {'level': logging.WARNING},
+        'pika': {'level': logging.WARNING},
+    },
+    root={'handlers': ['default']},
+)
 
 
 class Config(object):  # pylint:disable=too-many-instance-attributes
@@ -59,22 +75,25 @@ def cli(_, debug):
     CONFIG.logger = logging.getLogger('dockci')
     CONFIG.logger.debug("Running in DEBUG mode")
 
-    init_config()
-    init_rollbar()
+    init_logger = CONFIG.logger.getChild('init')
+
+    init_config(init_logger)
+    init_rollbar(init_logger)
 
     mimetypes.add_type('application/x-yaml', 'yaml')
 
 
 def init_logging():
     """ Logging setup """
-    logging.basicConfig(level=logging.DEBUG if CONFIG.debug else logging.INFO,
-                        format=LOG_FORMAT)
+    logging_config_mut = deepcopy(LOGGING_CONFIG)
+    logging_config_mut['root']['level'] = (
+        logging.DEBUG if CONFIG.debug else logging.INFO)
+    logging.config.dictConfig(logging_config_mut)
 
 
-def init_config():
+def init_config(init_logger):
     """ Pre-run app setup """
-    logger = CONFIG.logger.getChild('init')
-    logger.info("Loading app config")
+    init_logger.info("Loading app config")
 
     # pylint:disable=attribute-defined-outside-init
     CONFIG.rabbitmq_user = os.environ.get(
@@ -156,13 +175,13 @@ def wrapped_report_exception(app, exception):
     return rollbar.contrib.flask.report_exception(app, exception)
 
 
-def init_rollbar():
+def init_rollbar(init_logger):
     """ Initialize Rollbar for error/exception reporting """
     try:
         api_key = os.environ['ROLLBAR_API_KEY']
         environment = os.environ['ROLLBAR_ENVIRONMENT']
     except KeyError:
-        logging.error('No Rollbar settings found')
+        init_logger.error('No Rollbar settings found')
         return
 
     rollbar.init(
