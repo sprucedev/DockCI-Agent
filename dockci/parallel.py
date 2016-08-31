@@ -45,10 +45,11 @@ class ParallelTestController(object):
     for the master/peer transfer
     """
 
-    def __init__(self, logger):
+    def __init__(self, port, logger):
         self._logger = logger
         self._shard_details = {}
         self._shard_details_handlers = {}
+        self.port = port
 
         self.app = web.Application()
 
@@ -68,7 +69,7 @@ class ParallelTestController(object):
     def run(self):
         with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
             self.app.executor = executor
-            web.run_app(self.app)
+            web.run_app(self.app, port=self.port)
 
     @asyncio.coroutine
     async def handle_get_image(self, request):

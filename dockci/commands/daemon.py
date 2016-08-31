@@ -13,12 +13,14 @@ from dockci.server import cli, CONFIG, pika_conn_params
 @click.option('--dockci-url', required=True)
 @click.option('--dockci-apikey', required=True)
 @click.option('--blob-path', default='/tmp/dockci-blobs')
+@click.option('--agent-port', default=8080)
 @click.pass_context
-def run(_, dockci_url, dockci_apikey, blob_path):
+def run(_, dockci_url, dockci_apikey, blob_path, agent_port):
     """ Run the agent daemon """
     CONFIG.dockci_url = dockci_url
     CONFIG.api_key = dockci_apikey
     CONFIG.blob_path = py.path.local(blob_path)
+    CONFIG.agent_port = agent_port
     if os.fork():
         consumer = Consumer(
             pika_conn_params(),
@@ -28,6 +30,7 @@ def run(_, dockci_url, dockci_apikey, blob_path):
     else:
         # XXX configuration
         controller = ParallelTestController(
+            agent_port,
             CONFIG.logger.getChild('parallel'),
         )
         controller.run()
