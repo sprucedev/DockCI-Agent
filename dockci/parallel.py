@@ -7,6 +7,8 @@ import json
 
 from urllib.parse import parse_qs
 
+import aiohttp
+
 from aiohttp import web
 from marshmallow.exceptions import ValidationError
 
@@ -53,7 +55,7 @@ class ParallelTestController(object):
         self._shard_details_handlers = {}
         self.port = port
 
-        self.app = web.Application()
+        self.app = web.Application(middlewares=[self.exception_logger])
 
         self.app.router.add_route(
             'GET', '/image/{id}',
@@ -67,6 +69,20 @@ class ParallelTestController(object):
             'PATCH', '/shard/{id}',
             self.handle_patch_shard_detail,
         )
+
+    @asyncio.coroutine
+    async def exception_logger(self, app, handler):
+        """ Log exceptions during handler """
+        @asyncio.coroutine
+        async def middleware(request):
+            """ Try req handler, logging any non-HttpException exceptions """
+            try:
+                return await handler(request)
+            except Exception as ex:
+                if not isinstance(ex, web.HTTPException):
+                    self._logger.exception('Exception in handler')
+                raise
+        return middleware
 
     def run(self):
         with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
