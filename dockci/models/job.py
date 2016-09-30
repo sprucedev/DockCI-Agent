@@ -6,6 +6,7 @@ DockCI - CI, but with that all important Docker twist
 # pylint:disable=too-many-lines
 
 import functools
+import json
 import logging
 import sys
 import tempfile
@@ -16,6 +17,7 @@ from itertools import chain
 
 import docker
 import py.path  # pylint:disable=import-error
+import requests
 import semver
 
 from marshmallow import Schema, fields
@@ -42,6 +44,9 @@ from .job_meta.stages_prepare_docker import (DockerLoginStage,
                                              PushPrepStage,
                                              UtilStage,
                                              )
+from .parallel import ShardDetail, TestShardMessage
+from dockci.server import CONFIG, pika_conn
+from dockci.util import all_attrs_filled, primary_ip
 
 
 STATE_MAP = {
@@ -113,6 +118,10 @@ PUSH_REASON_MESSAGES = {
     UnpushableReasons.no_branch_match:
         "branch name doesn't match branch pattern",
 }
+
+
+SHARD_DETAIL_FS = 'http://{ip}:{port}/shard/{project_slug}-{job_slug}-{idx}'
+IMAGE_DETAIL_FS = 'http://{ip}:{port}/image/{image_id}'
 
 
 def _cmp_ahead_ref(left, right):
@@ -1023,10 +1032,66 @@ class Job(RestModel):  # noqa,pylint:disable=too-many-public-methods,too-many-in
                 self.save()
                 return False
 
-            if not self._stage_objects['docker_test'].run(0):
-                self.result = 'fail'
-                self.save()
-                return False
+            num_agents = 2
+            if num_agents > 1:  #if self.job_config...
+                ext_ip = primary_ip()
+                with pika_conn() as conn:
+                    channel = conn.channel()
+                    for idx in range(num_agents):
+                        this_detail = SHARD_DETAIL_FS.format(
+                            ip=ext_ip,
+                            port=CONFIG.agent_port,
+                            project_slug=self.project_slug,
+                            job_slug=self.slug,
+                            idx=idx,
+                        )
+                        next_detail = None if idx == num_agents - 1 else (
+                            SHARD_DETAIL_FS.format(
+                                ip=ext_ip,
+                                port=CONFIG.agent_port,
+                                project_slug=self.project_slug,
+                                job_slug=self.slug,
+                                idx=idx+1,
+                            ))
+                        res = requests.patch(
+                            this_detail,
+                            data=dict(
+                                shard_idx=idx,
+                                image_id=self.image_id,
+                                next_detail=next_detail,
+                            ),
+                        )
+                        if 200 < res.status_code <= 300:
+                            # XXX handle this MUCH better
+                            raise Exception("Couldn't create shard")
+
+                        if idx == 0:
+                            continue
+
+                        message = TestShardMessage(
+                            shard_detail=this_detail,
+                            project_slug=self.project_slug,
+                            job_slug=self.slug,
+                        )
+                        message_data = message.SCHEMA.dump(message).data
+                        message_data.update(message_type='test_shard')
+                        channel.basic_publish(
+                            exchange=CONFIG.rabbitmq_exchange,
+                            routing_key='new_shard',
+                            body=json.dumps(message_data).encode(),
+                        )
+                if self._run_test_shard(SHARD_DETAIL_FS.format(
+                    ip=ext_ip,
+                    port=CONFIG.agent_port,
+                    project_slug=self.project_slug,
+                    job_slug=self.slug,
+                    idx=0,
+                )):
+                    return False
+
+            else:
+                if not self._run_test(test_stage=self._stage_objects['docker_test']):
+                    return False
 
             # We should fail the job here because if this is a tagged
             # job, we can't rebuild it
@@ -1051,14 +1116,95 @@ class Job(RestModel):  # noqa,pylint:disable=too-many-public-methods,too-many-in
             return False
 
         finally:
-            try:
-                self._stage_objects['cleanup'].run(None)
-
-            except Exception:  # pylint:disable=broad-except
-                self._error_stage('post_error')
-
+            self._run_cleanup(cleanup_stage=self._stage_objects['cleanup'])
             self.complete_ts = 'now'
             self.save()
+
+    def run_test_shard_solo(self, shard_detail):
+        """ Run the test shard and cleanup afterward """
+        try:
+            result = self._run_test_shard(shard_detail)
+
+        finally:
+            self._run_cleanup(cleanup_stage=self._stage_objects['cleanup'])
+
+        return result
+
+    def _run_test_shard(self, shard_detail):
+        """
+        Test worker to run a single shard of a test suite (no cleanup)
+        """
+        def get_shard_obj(wait=False):
+            """ Get the shard detail model """
+            # XXX proper URL parse to add wait
+            res = requests.get('%s%s' % (shard_detail, '?wait' if wait else ''))
+            if 200 < res.status_code <= 300:
+                # XXX handle this MUCH better
+                raise Exception("Couldn't get shard")
+
+            return ShardDetail(**ShardDetail.SCHEMA.load(res.json()).data)
+
+        shard_obj = get_shard_obj(wait=False)
+
+        try:
+            if shard_obj.next_detail is not None:
+                this_image_detail = IMAGE_DETAIL_FS.format(
+                    ip=primary_ip(),
+                    port=CONFIG.agent_port,
+                    image_id=shard_obj.image_id,
+                )
+                logging.info("Updating image detail for '%s' to '%s'",
+                             shard_obj.next_detail,
+                             this_image_detail)
+                res = requests.patch(
+                    shard_obj.next_detail,
+                    data={'image_detail': this_image_detail}
+                )
+                if 200 < res.status_code <= 300:
+                    # XXX handle this MUCH better
+                    raise Exception("Couldn't update next shard")
+
+            if self.image_id is None:
+                try:
+                    self.docker_client.inspect_image(shard_obj.image_id)
+
+                except docker.errors.NotFound:
+                    if shard_obj.image_detail is None:
+                        logging.info("Waiting for full shard details")
+                        shard_obj = get_shard_obj(wait=True)
+
+                    if shard_obj.image_detail is None:
+                        raise Exception("Timeout waiting for filled shard detail")
+
+                self.image_id = shard_obj.image_id
+
+            return self._run_test(TestStage(self, idx=shard_obj.shard_idx))
+
+        except Exception:  # pylint:disable=broad-except
+            self._error_stage('test_%s_error' % shard_obj.shard_idx)
+            self.result = 'broken'
+            self.save()
+
+            return False
+
+    def _run_test(self, test_stage=None):
+        if test_stage is None:
+            test_stage = TestStage(self)
+
+        if not test_stage.run(0):
+            self.result = 'fail'
+            self.save()
+            return False
+
+    def _run_cleanup(self, cleanup_stage=None):
+        if cleanup_stage is None:
+            cleanup_stage = CleanupStage(self)
+
+        try:
+            cleanup_stage.run(None)
+
+        except Exception:  # pylint:disable=broad-except
+            self._error_stage('post_error')
 
     def _error_stage(self, stage_slug):
         """

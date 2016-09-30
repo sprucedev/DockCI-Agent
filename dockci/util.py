@@ -1,6 +1,7 @@
 """
 Generic DockCI utils
 """
+import ipaddress
 import re
 import shlex
 import socket
@@ -32,6 +33,50 @@ def default_gateway():
             return ip_address(socket.inet_ntoa(
                 struct.pack("<L", int(fields[2], 16))
             ))
+
+
+def primary_ip():
+    """
+    Get the primary IP
+
+    Examples:
+
+    >>> primary_ip()
+    IPv4Address(...)
+    """
+    try:
+        return _primary_ip_linux()
+    except subprocess.CalledProcessError:
+        return _primary_ip_ifconfig()
+
+
+def _primary_ip_linux():
+    """
+    Get the primary IP on Linux-like hosts
+    """
+    return ipaddress.ip_address(subprocess.check_output(
+        ['/bin/hostname', '--all-ip-addresses'],
+        stderr=subprocess.STDOUT,
+    ))
+
+
+IFCONFIG_INET_RE = r'inet ([0-9]{1,3}\.){3}[0-9]{1,3}'
+
+
+def _primary_ip_ifconfig():
+    """
+    Get the primary IP using fallback ifconfig parsing
+    """
+    for match in re.finditer(
+        IFCONFIG_INET_RE,
+        subprocess.check_output(
+            ['/sbin/ifconfig'],
+            stderr=subprocess.STDOUT,
+        ).decode(),
+    ):
+        if match.group() == 'inet 127.0.0.1':
+            continue
+        return ipaddress.ip_address(match.group()[5:])
 
 
 def bytes_human_readable(num, suffix='B'):

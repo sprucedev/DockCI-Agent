@@ -23,6 +23,7 @@ from .models.parallel import ShardDetail
 from .util import all_attrs_filled
 
 
+CHUNK_SIZE = 1024 * 1024 # 1mb
 WAIT_TIMEOUT = 60 * 10
 CACHE_DIR = '/Users/ricky/a'  # XXX
 DOCKER_TAR_MIME = 'application/x-tar'
@@ -170,112 +171,49 @@ async def ensure_write(handle, data):
         pass
 
 
-class AIOCacheFile(object):
-    """ File-like object that writes to a set of writers, and cleans up when
-    done
+def ew_gatherable(chunk, handle):
+    try:
+        return handle.write(chunk)
+    except AttributeError:
+        return handle.feed_data(chunk)
 
-    Examples:
+def ew_flush_gatherable(chunk, handle):
+    ew_fut = ew_gatherable(chunk, handle)
+    try:
+        return asyncio.gather(ew_fut, handle.flush())
+    except AttributeError:
+        return ew_fut
 
-      >>> import io
+async def write_all_no_lock(chunk, out_handles, a=False):
+    c = [b for b in [
+        ew_flush_gatherable(chunk, handle)
+        for handle in out_handles
+    ] if b is not None]
+    if a:
+        print(c)
+    g = asyncio.gather(*c)
+    await g
 
-      >>> writer1 = io.BytesIO()
-      >>> writer2 = io.BytesIO()
-      >>> writer3 = io.BytesIO()
 
-      >>> async def test_1():
-      ...   global test_file
-      ...   test_file = await AIOCacheFile.open()
-      ...   test_file.add_writer(writer1)
-      ...   test_file.add_writer(writer2)
-      ...   await test_file.write(b'testing')
-      ...   await test_file.flush()
-      >>> asyncio.get_event_loop().run_until_complete(test_1())
-      >>> writer1.getbuffer().tobytes()
-      b'testing'
-      >>> writer2.getbuffer().tobytes()
-      b'testing'
+async def write_all(chunk, out_handles, write_lock=None, a=False):
+    if write_lock is None:
+        await write_all_no_lock(chunk, out_handles, a=a)
+    else:
+        with (await write_lock):
+            await write_all_no_lock(chunk, out_handles)
 
-      >>> async def test_2():
-      ...   test_file.add_writer(writer3)
-      ...   await test_file.flush()
-      >>> asyncio.get_event_loop().run_until_complete(test_2())
-      >>> writer3.getbuffer().tobytes()
-      b'testing'
 
-      >>> async def test_3():
-      ...   await test_file.write(b'more')
-      ...   await test_file.flush()
-      >>> asyncio.get_event_loop().run_until_complete(test_3())
-      >>> writer1.getbuffer().tobytes()
-      b'testingmore'
-      >>> writer3.getbuffer().tobytes()
-      b'testingmore'
-    """
-
-    def __init__(self, tmpfile, aiohandle):
-        self._tmpfile = tmpfile
-        self._aiohandle = aiohandle
-        self._close_event = asyncio.Event()
-        self._writers = []
-        self._writer_lock = ReverseSemaphore()
-
-    @contextmanager
-    def cleanup_blocked(self):
-        """ Block cleanup and write events """
-        self._writer_lock.acquire()
-        try:
-            yield
-        finally:
-            self._writer_lock.release()
-
-    def add_writer(self, writer):
-        self._writer_lock.acquire()
-        asyncio.ensure_future(self._write_and_add_writer(writer))
-
-    async def _write_and_add_writer(self, writer):
-        try:
-            await self._aiohandle.flush()
-            async with aiofiles.open(self._tmpfile.name, mode='rb') as handle:
-                while True:
-                    chunk = await handle.read(1024)
-                    if not chunk:
-                        break
-                    await ensure_write(writer, chunk)
-            self._writers.append(writer)
-        finally:
-            self._writer_lock.release()
-
-    async def write(self, data):
-        # XXX do we need to await writer_lock here?
-        await self._aiohandle.write(data)
-        await gather_futures([
-            ensure_write(writer, data)
-            for writer in self._writers
-        ])
-
-    async def flush(self):
-        await self._writer_lock.wait()
-        await gather_futures([
-            writer.flush() if hasattr(writer, 'flush') else None
-            for writer in self._writers
-        ])
-
-    async def close(self):
-        await self.flush()
-        self._tmpfile.close()
-        self._close_event.set()
-
-    async def wait(self):
-        """ Wait for file to be closed """
-        await self._close_event.wait()
-
-    @classmethod
-    async def open(cls):
-        tmpfile = tempfile.NamedTemporaryFile()
-        return AIOCacheFile(
-            tmpfile=tmpfile,
-            aiohandle=await aiofiles.open(tmpfile.name, mode='wb'),
-        )
+async def read_write_all(in_handle, out_handles, write_lock=None, a=False):
+    if hasattr(in_handle, 'at_eof'):
+        while not in_handle.at_eof():
+            chunk = await in_handle.read(CHUNK_SIZE)
+            await write_all(chunk, out_handles, write_lock)
+    else:
+        while True:
+            chunk = await in_handle.read(CHUNK_SIZE)
+            if not chunk:
+                return
+            await write_all(chunk, out_handles, write_lock, a=a)
 
 
 @contextmanager
@@ -321,9 +259,14 @@ class ParallelTestController(object):
 
     def __init__(self, port, logger):
         self._logger = logger
+
         self._shard_details = {}
         self._shard_details_handlers = {}
-        self._cache_files = {}
+
+        self._cache_writers = {}
+        self._cache_write_locks = {}
+        self._cache_complete_events = {}
+
         self.port = port
 
         self.app = web.Application(middlewares=[self.exception_logger])
@@ -377,20 +320,32 @@ class ParallelTestController(object):
             ) as resp:
                 if resp.status == 404:
                     try:
-                        cache_file = self._cache_files[params['id']]
+                        cache_writers = self._cache_writers[params['id']]
+                        write_lock = self._cache_write_locks[params['id']]
+                        complete_event = self._cache_complete_events[params['id']]
                     except KeyError:
                         return web.Response(status=404)
 
-                    with cache_file.cleanup_blocked():
-                        our_resp = web.StreamResponse(
-                            status=200,
-                            headers={'Content-Type': DOCKER_TAR_MIME},
-                        )
-                        await our_resp.prepare(request)
-                        cache_file.add_writer(our_resp)
+                    try:
+                        async with aiofiles.open('/tmp/%s.bin' % params['id'], 'rb') as cache_file:
+                            fresp = aiohttp.web.StreamResponse(status=200)
+                            await fresp.prepare(request)
+                            print('R1 start')
+                            await read_write_all(cache_file, (fresp,), a=True)
+                            print('R2 start')
+                            await read_write_all(cache_file, (fresp,), a=True)
+                            print('WLOCK start')
+                            with (await write_lock):
+                                print('R3 start')
+                                await read_write_all(cache_file, (fresp,), a=True)
+                                cache_writers.append(fresp)
+                            print('WAIT')
 
-                    await cache_file.wait()
-                    return our_resp
+                            await complete_event.wait()
+                            return fresp
+
+                    except FileNotFoundError:
+                        return web.Response(status=404)
 
                 elif 200 < resp.status <= 300:
                     # XXX JSON error?
@@ -420,42 +375,52 @@ class ParallelTestController(object):
         # XXX handle HTTP error
 
         # XXX don't just assert; HTTP status and error
-        assert params['id'] not in self._cache_files, 'Cache file exists'
+        assert params['id'] not in self._cache_writers, 'Cache writers exist'
+        assert params['id'] not in self._cache_write_locks, 'Cache write lock exists'
+        assert params['id'] not in self._cache_complete_events, 'Cache completion event exists'
 
-        async with aiofiles.open(data['url'], 'rb') as in_handle:
-            self._cache_files[params['id']] = cache_file = await AIOCacheFile.open()
-            try:
-                upload_stream = asyncio.StreamReader()
-                cache_file.add_writer(upload_stream)
+        cache_writers = self._cache_writers[params['id']] = []
+        write_lock = self._cache_write_locks[params['id']] = asyncio.Lock()
+        complete_event = self._cache_complete_events[params['id']] = asyncio.Event()
 
-                async def read_write():
-                    while True:
-                        chunk = await in_handle.read(1024)
-                        if not chunk:
-                            break
-                        await cache_file.write(chunk)
+        try:
+            async with aiofiles.open(data['url'], 'rb') as in_handle:
+                async with aiofiles.open('/tmp/%s.bin' % params['id'], 'wb') as cache_file:
+                    upload_stream = asyncio.StreamReader()
 
-                    upload_stream.feed_eof()
+                    cache_writers.append(cache_file)
+                    cache_writers.append(upload_stream)
 
-                asyncio.ensure_future(read_write())
+                    async def read_write():
+                        try:
+                            await read_write_all(in_handle, cache_writers, write_lock)
+                            upload_stream.feed_eof()
+                        except Exception as ex:
+                            self._logger.exception('Exception in read/write')
 
-                with aiohttp_docker() as docker_session:
-                    async with docker_session.post(
-                        'http://docker/images/load',
-                        headers={
-                            'Content-Type': DOCKER_TAR_MIME,
-                              # XXX copy from request HTTP
-                            'Content-Length': '%d' % os.stat(in_handle.fileno()).st_size,
-                        },
-                        data=upload_stream,
-                    ) as resp:
-                        return web.Response(
-                            status=resp.status,
-                            body=await resp.read(),
-                        )
-            finally:
-                del self._cache_files[params['id']]
-                await cache_file.close()
+                    asyncio.ensure_future(read_write())
+
+                    with aiohttp_docker() as docker_session:
+                        print('POSTING to docker')
+                        async with docker_session.post(
+                            'http://docker/images/load',
+                            headers={
+                                'Content-Type': DOCKER_TAR_MIME,
+                                  # XXX copy from request HTTP
+                                'Content-Length': '%d' % os.stat(in_handle.fileno()).st_size,
+                            },
+                            data=upload_stream,
+                        ) as resp:
+                            complete_event.set()
+                            return web.Response(
+                                status=resp.status,
+                                body=await resp.read(),
+                            )
+
+        finally:
+            del self._cache_writers[params['id']]
+            del self._cache_write_locks[params['id']]
+            del self._cache_complete_events[params['id']]
 
     @asyncio.coroutine
     async def handle_get_shard_detail(self, request):

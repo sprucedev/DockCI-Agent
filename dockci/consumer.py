@@ -9,8 +9,9 @@ import aioamqp
 
 from aioamqp.exceptions import AmqpClosedConnection
 
-from dockci.models.job import Job
-from dockci.server import CONFIG
+from .models.job import Job
+from .server import CONFIG
+from .util import primary_ip
 
 
 ROUTING_KEY = '*'
@@ -78,7 +79,6 @@ class Consumer(object):
                 )
                 yield from channel.queue_declare(
                     CONFIG.rabbitmq_queue,
-                    passive=True,
                     exclusive=False,
                     auto_delete=False,
                 )
@@ -158,6 +158,7 @@ class Consumer(object):
             job_data = json.loads(body.decode())
             project_slug = job_data.pop('project_slug')
             job_slug = job_data.pop('job_slug')
+            message_type = job_data.pop('message_type', 'job')
             job = Job.load(project_slug, job_slug, **job_data)
 
         except (ValueError, KeyError):
@@ -175,10 +176,34 @@ class Consumer(object):
                 delivery_tag=envelope.delivery_tag,
             )
 
-            self._logger.info('Running job %s/%s', project_slug, job_slug)
-            yield from asyncio.get_event_loop().run_in_executor(
-                None, job.run,
-            )
+            if message_type == 'job':
+                self._logger.info('Running job %s/%s', project_slug, job_slug)
+                yield from asyncio.get_event_loop().run_in_executor(
+                    None, job.run,
+                )
 
-            self._logger.info('Job completed')
+                self._logger.info('Job completed')
+
+            elif message_type == 'test_shard':
+                self._logger.info(
+                    'Running test shard for job %s/%s',
+                    project_slug,
+                    job_slug,
+                )
+                yield from asyncio.get_event_loop().run_in_executor(
+                    None, job.run_test_shard_solo(
+                        shard_detail=job_data['shard_detail'],
+                    ),
+                )
+
+                self._logger.info('Test shard completed')
+
+            else:
+                self._logger.exception('Unknown message type: %s', message_type)
+                self._logger.info('Rejecting message')
+                yield from channel.basic_client_nack(
+                    delivery_tag=envelope.delivery_tag,
+                    requeue=False,
+                )
+
             self._running_event.clear()
